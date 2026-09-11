@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#07080f">
+    <title>Register - <%= typeof settings !== 'undefined' && settings.panelName ? settings.panelName : 'DTG PANEL' %></title>
+    <link rel="icon" href="<%= typeof settings !== 'undefined' && settings.siteIcon ? settings.siteIcon : '/favicon.ico' %>">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+    <script src="/js/theme.js" defer></script>
+    <script>
+    (function(){
+        var stored = null;
+        try { stored = localStorage.getItem('amc_theme'); } catch(e) {}
+        var m = stored || 'dark';
+        document.documentElement.setAttribute('data-theme', m === 'light' ? 'light' : 'dark');
+    })();
+    </script>
+</head>
+<body class="auth-body" data-page="register">
+<%
+    var loginBg = typeof settings !== 'undefined' && settings.loginBackground ? settings.loginBackground : '';
+%>
+<% if (loginBg) { %>
+    <% if (/\.(mp4|webm|ogg)$/i.test(loginBg)) { %>
+    <video id="bgLayer" style="position:fixed;inset:0;z-index:0;width:100%;height:100%;object-fit:cover;" autoplay muted loop playsinline src="<%= loginBg %>"></video>
+    <% } else { %>
+    <div id="bgLayer" style="position:fixed;inset:0;z-index:0;background:url('<%= loginBg %>') center/cover no-repeat fixed;"></div>
+    <% } %>
+    <div id="bgOverlay" style="position:fixed;inset:0;z-index:1;background:rgba(7,8,15,0.6);pointer-events:none"></div>
+<% } %>
+
+<div class="auth-toolbar">
+    <button class="auth-tool-btn auth-theme-toggle" id="authThemeToggle" title="Toggle theme" aria-label="Toggle theme">
+        <i class="fas fa-moon icon-moon"></i>
+        <i class="fas fa-sun icon-sun"></i>
+    </button>
+    <button class="auth-tool-btn" id="authBgTrigger" title="Change background" aria-label="Change background">
+        <i class="fas fa-palette"></i>
+    </button>
+</div>
+<div class="auth-picker" id="authBgPicker">
+    <div id="authBgSwatches"></div>
+</div>
+
+<div class="auth-scene">
+    <div class="auth-card">
+        <div class="auth-logo"><i class="fas fa-shield-halved"></i></div>
+        <h1 class="auth-title"><%= typeof settings !== 'undefined' && settings.panelName ? settings.panelName : 'DTG PANEL' %></h1>
+        <p class="auth-subtitle">Create your account and start managing Minecraft servers in minutes.</p>
+
+        <% if (typeof error !== 'undefined' && error) { %>
+        <div class="alert alert-error"><i class="fas fa-circle-exclamation"></i><span><%= error %></span></div>
+        <% } %>
+
+        <form action="/auth/register" method="POST" id="regForm" autocomplete="on">
+            <div class="auth-field">
+                <label class="form-label">Username</label>
+                <div class="auth-input-wrap">
+                    <i class="fas fa-user auth-input-icon"></i>
+                    <input class="auth-input" type="text" name="username" placeholder="Choose a username" required minlength="3" autofocus>
+                </div>
+            </div>
+            <div class="auth-field">
+                <label class="form-label">Email Address</label>
+                <div class="auth-input-wrap">
+                    <i class="fas fa-envelope auth-input-icon"></i>
+                    <input class="auth-input" type="email" name="email" placeholder="you@example.com" required>
+                </div>
+            </div>
+            <div class="d-flex gap-3 flex-wrap" style="align-items:flex-start">
+                <div class="auth-field" style="flex:1;min-width:150px">
+                    <label class="form-label">Password</label>
+                    <div class="auth-input-wrap">
+                        <i class="fas fa-lock auth-input-icon"></i>
+                        <input class="auth-input" type="password" name="password" placeholder="Min 6 characters" required minlength="6">
+                    </div>
+                </div>
+                <div class="auth-field" style="flex:1;min-width:150px">
+                    <label class="form-label">Confirm Password</label>
+                    <div class="auth-input-wrap">
+                        <i class="fas fa-lock auth-input-icon"></i>
+                        <input class="auth-input" type="password" name="confirmPassword" placeholder="Repeat password" required minlength="6">
+                    </div>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary btn-lg auth-btn" id="regBtn">
+                <i class="fas fa-user-plus"></i> Create Account
+            </button>
+        </form>
+
+        <div class="auth-footer">
+            <p>Already have an account? <a href="/auth/login">Sign in</a></p>
+            <div class="brand">&copy; 2026 DTG PANEL</div>
+        </div>
+    </div>
+
+    <div class="auth-brand-panel">
+        <h2 class="auth-brand-title">Your servers, <span>elevated.</span></h2>
+        <p class="auth-brand-desc">Join a premium Minecraft hosting panel with a modern experience designed around speed, clarity and control.</p>
+        <div class="auth-feature">
+            <div class="auth-feature-icon"><i class="fas fa-terminal"></i></div>
+            <div>
+                <div class="auth-feature-title">Full-featured console</div>
+                <div class="auth-feature-desc">Send commands, watch live logs and manage your server from any device.</div>
+            </div>
+        </div>
+        <div class="auth-feature">
+            <div class="auth-feature-icon"><i class="fas fa-folder-open"></i></div>
+            <div>
+                <div class="auth-feature-title">Built-in file manager</div>
+                <div class="auth-feature-desc">Edit configs, upload worlds and manage plugins without extra tools.</div>
+            </div>
+        </div>
+        <div class="auth-feature">
+            <div class="auth-feature-icon"><i class="fas fa-crown"></i></div>
+            <div>
+                <div class="auth-feature-title">Scales with you</div>
+                <div class="auth-feature-desc">From a single survival server to a full proxy network — all in one place.</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function(){
+    var f=document.getElementById('regForm'),b=document.getElementById('regBtn');
+    if(f)f.addEventListener('submit',function(){
+        var p=f.querySelector('input[name="password"]');
+        var c=f.querySelector('input[name="confirmPassword"]');
+        if(p.value!==c.value){
+            b.innerHTML='<i class="fas fa-user-plus"></i> Create Account';
+            b.disabled=false;
+            showToast('Passwords do not match','error');
+            c.focus();
+            return;
+        }
+        b.innerHTML='<i class="fas fa-circle-notch fa-spin"></i> Creating account...';
+        b.disabled=true;
+    });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#07080f">
+    <title><%= typeof title !== 'undefined' ? title + ' — ' : '' %><%= settings.panelName || 'DTG PANEL' %></title>
+    <link rel="icon" href="<%= settings.siteIcon || '/favicon.ico' %>">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+    <script src="/socket.io/socket.io.js"></script>
+    <link rel="stylesheet" href="/css/style.css">
+    <script src="/js/theme.js" defer></script>
+    <script src="/js/animations.js" defer></script>
+    <%- typeof headExtra !== 'undefined' ? headExtra : '' %>
+    <% if (user && user.theme_primary_color && user.theme_accent_color) { %>
+    <style>:root{--accent:<%= user.theme_primary_color %>;--accent-2:<%= user.theme_accent_color %>;--accent-grad:linear-gradient(135deg,<%= user.theme_primary_color %> 0%,<%= user.theme_accent_color %> 55%,<%= user.theme_accent_color %> 100%);}</style>
+    <% } %>
+    <script>
+    (function(){
+        var stored = null;
+        try { stored = localStorage.getItem('amc_theme'); } catch(e) {}
+        var m = stored || '<%= (user&&user.theme_preference)?user.theme_preference:"dark" %>';
+        var resolved = (m === 'auto') ? (window.matchMedia('(prefers-color-scheme:dark)').matches ? 'dark' : 'light') : (m === 'light' ? 'light' : 'dark');
+        document.documentElement.setAttribute('data-theme', resolved);
+        if (m === 'auto') {
+            window.matchMedia('(prefers-color-scheme:dark)').addEventListener('change', function(e){
+                document.documentElement.setAttribute('data-theme', e.matches ? 'dark' : 'light');
+            });
+        }
+    })();
+    </script>
+    <% if (settings && settings.panelFont) { %>
+    <link href="https://fonts.googleapis.com/css2?family=<%= settings.panelFont.replace(/ /g,'+') %>:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>body{font-family:'<%= settings.panelFont %>',var(--font-sans),sans-serif!important}</style>
+    <% } %>
+    <style>:root{
+      --glass-blur:<%= settings.glassBlur || 14 %>px;
+      <% if (settings && settings.accentColor) { %>--accent:<%= settings.accentColor %>;--accent-2:<%= settings.accentColor2 || settings.accentColor %>;--accent-grad:linear-gradient(135deg,<%= settings.accentColor %> 0%,<%= settings.accentColor2 || settings.accentColor %> 100%);<% } %>
+    }</style>
+</head>
+<body data-ui="<%= settings.uiStyle || 'solid' %>" data-sidebar="<%= settings.sidebarStyle || 'solid' %>" data-card="<%= settings.cardStyle || 'solid' %>" data-radius="<%= settings.cornerRadius || 'rounded' %>" data-blur="<%= settings.glassBlur || 14 %>" data-motion="<%= settings.uiMotion || 'on' %>" data-sidebar-width="<%= settings.sidebarWidth || 'normal' %>" data-navbar="<%= settings.navbarStyle || 'solid' %>" data-topbar="<%= settings.topbarStyle || 'solid' %>" data-glow="<%= settings.cardBorderGlow || 'off' %>" data-font-scale="<%= settings.fontScale || 'normal' %>" data-anim-speed="<%= settings.animSpeed || 'normal' %>">
+<%
+    var bgUrl = settings.dashboardThemeUrl || '';
+    var bgPreset = settings.dashboardThemePreset || '';
+    var isVideo = settings.dashboardThemeType === 'video' || /\.(mp4|webm|ogg)$/i.test(bgUrl);
+%>
+<% if (bgUrl) { %>
+    <% if (isVideo) { %>
+    <video id="bgLayer" style="position:fixed;inset:0;z-index:0;width:100%;height:100%;object-fit:cover;" autoplay muted loop playsinline src="<%= bgUrl %>"></video>
+    <% } else { %>
+    <div id="bgLayer" style="position:fixed;inset:0;z-index:0;background:url('<%= bgUrl %>') center/cover no-repeat fixed;"></div>
+    <% } %>
+    <div id="bgOverlay" style="position:fixed;inset:0;z-index:1;background:rgba(7,8,15,0.5);pointer-events:none"></div>
+<% } else if (bgPreset) { %>
+    <div id="bgLayer" style="position:fixed;inset:0;z-index:0;background:<%= bgPreset %>"></div>
+    <div id="bgOverlay" style="position:fixed;inset:0;z-index:1;background:rgba(7,8,15,0.55);pointer-events:none"></div>
+<% } else { %>
+    <div id="bgLayer" style="position:fixed;inset:0;z-index:0;background:var(--bg-primary)"></div>
+    <div id="bgOverlay" style="position:fixed;inset:0;z-index:1;pointer-events:none"></div>
+<% } %>
+
+<div class="app">
+    <% if (user) { %><%- include('sidebar') %><% } %>
+
+    <div class="main-wrap">
+        <% if (user) { %>
+        <header class="top-bar">
+            <button class="mobile-toggle" id="mobileToggle" aria-label="Toggle sidebar"><i class="fas fa-bars"></i></button>
+            <div class="top-search">
+                <i class="fas fa-search"></i>
+                <input type="text" id="globalSearch" placeholder="Search anything..." aria-label="Search">
+                <kbd>Ctrl K</kbd>
+            </div>
+            <div class="top-bar-spacer"></div>
+            <div class="top-actions">
+                <button class="top-btn theme-toggle" id="themeToggleBtn" title="Toggle light / dark theme" aria-label="Toggle theme">
+                    <i class="fas fa-moon icon-moon"></i>
+                    <i class="fas fa-sun icon-sun"></i>
+                </button>
+                <div class="dropdown" style="position:relative">
+                    <button class="top-btn" id="themePickerTrigger" title="Background theme" aria-label="Background theme">
+                        <i class="fas fa-palette"></i>
+                    </button>
+                    <div class="picker-popover" id="themePicker">
+                        <div id="themePickerSwatches"></div>
+                    </div>
+                </div>
+                <button class="top-btn" id="notificationBell" title="Notifications" aria-label="Notifications" onclick="window.location.href='/notifications'">
+                    <i class="fas fa-bell"></i>
+                    <% if (typeof notificationCount !== 'undefined' && notificationCount > 0) { %>
+                    <span class="badge-dot"></span>
+                    <% } %>
+                </button>
+            </div>
+            <div class="user-menu" id="userMenuTrigger">
+                <div class="user-avatar">
+                    <% if (user.profile_picture) { %>
+                    <img src="<%= user.profile_picture %>" alt="">
+                    <% } else { %>
+                    <div class="user-avatar-text"><%= user.username.charAt(0).toUpperCase() %></div>
+                    <% } %>
+                </div>
+                <span class="user-name"><%= user.display_name || user.username %></span>
+                <i class="fas fa-chevron-down" style="font-size:10px;color:var(--text-tertiary)"></i>
+            </div>
+            <div class="user-dropdown" id="userDropdown">
+                <a href="/profile"><i class="fas fa-user"></i> Profile</a>
+                <a href="/notifications"><i class="fas fa-bell"></i> Notifications</a>
+                <% if (user.role === 'admin') { %>
+                <div class="dropdown-divider"></div>
+                <a href="/admin"><i class="fas fa-shield-halved"></i> Admin Panel</a>
+                <a href="/admin/nodes"><i class="fas fa-server"></i> Nodes</a>
+                <a href="/admin/users"><i class="fas fa-users"></i> Users</a>
+                <a href="/admin/servers"><i class="fas fa-database"></i> Servers</a>
+                <% } %>
+                <div class="dropdown-divider"></div>
+                <a href="/auth/logout" style="color:var(--danger)"><i class="fas fa-sign-out-alt"></i> Logout</a>
+            </div>
+        </header>
+        <% } %>
+
+        <main class="page-wrap">
+            <% if (messages && messages.success && messages.success.length) { %>
+                <% messages.success.forEach(function(msg){ %>
+                <div class="alert alert-success"><i class="fas fa-check-circle"></i><span><%= msg %></span><button class="alert-close" onclick="this.parentElement.remove()">&times;</button></div>
+                <% }); %>
+            <% } %>
+            <% if (messages && messages.error && messages.error.length) { %>
+                <% messages.error.forEach(function(msg){ %>
+                <div class="alert alert-error"><i class="fas fa-exclamation-circle"></i><span><%= msg %></span><button class="alert-close" onclick="this.parentElement.remove()">&times;</button></div>
+                <% }); %>
+            <% } %>
+            <% if (typeof success !== 'undefined' && success) { %>
+                <div class="alert alert-success"><i class="fas fa-check-circle"></i><span><%= success %></span><button class="alert-close" onclick="this.parentElement.remove()">&times;</button></div>
+            <% } %>
+            <% if (typeof error !== 'undefined' && error) { %>
+                <div class="alert alert-error"><i class="fas fa-exclamation-circle"></i><span><%= error %></span><button class="alert-close" onclick="this.parentElement.remove()">&times;</button></div>
+            <% } %>

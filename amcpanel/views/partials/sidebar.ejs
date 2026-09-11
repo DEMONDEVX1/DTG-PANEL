@@ -1,0 +1,105 @@
+<nav class="sidebar" id="sidebar">
+    <div class="sidebar-topbar"></div>
+
+    <div class="sidebar-header">
+        <div class="sidebar-logo"><i class="fas fa-shield-halved"></i></div>
+        <span class="sidebar-title"><%= settings.panelName || 'DTG PANEL' %></span>
+    </div>
+
+    <% if (typeof user !== 'undefined' && user) { %>
+    <a class="sidebar-profile" href="/profile">
+        <div class="side-profile-avatar">
+            <% if (user.profile_picture) { %>
+            <img src="<%= user.profile_picture %>" alt="">
+            <% } else { %>
+            <%= (user.display_name || user.username || 'U').charAt(0).toUpperCase() %>
+            <% } %>
+        </div>
+        <div class="side-profile-info">
+            <div class="side-profile-name"><%= user.display_name || user.username %></div>
+            <div class="side-profile-role"><i class="fas <%= user.role==='admin' ? 'fa-crown' : 'fa-user' %>"></i> <%= user.role === 'admin' ? 'Administrator' : 'User' %></div>
+        </div>
+        <div class="side-profile-link"><i class="fas fa-ellipsis-vertical"></i></div>
+    </a>
+    <% } %>
+
+    <div class="sidebar-nav">
+        <%
+            var cp = '';
+            try { cp = req.path || ''; } catch(e) { cp = ''; }
+            var inServer = typeof server !== 'undefined' && server ? true : false;
+            var inAdmin = cp.startsWith('/admin');
+            var isAdmin = typeof user !== 'undefined' && user && user.role === 'admin';
+            function navActive(active) { return (typeof activePage !== 'undefined' && activePage === active) ? 'active' : ''; }
+        %>
+
+        <% if (inServer) { %>
+        <div class="nav-section">
+            <div class="nav-section-title"><i class="fas fa-th-large"></i> Server</div>
+            <a href="/dashboard" class="nav-item"><i class="fas fa-arrow-left"></i><span>Back to Dashboard</span></a>
+        </div>
+        <div class="nav-section">
+            <div class="nav-section-title"><i class="fas fa-cube"></i> <%= server.name %> <span class="side-live <%= server.status==='running'?'on':'' %>"></span></div>
+            <a href="/servers/<%= server.id %>/dashboard" class="nav-item <%= navActive('dashboard') %>"><i class="fas fa-chart-simple"></i><span>Overview</span></a>
+            <a href="/servers/<%= server.id %>/console" class="nav-item <%= navActive('console') %>"><i class="fas fa-terminal"></i><span>Console</span></a>
+            <a href="/servers/<%= server.id %>/files" class="nav-item <%= navActive('files') %>"><i class="fas fa-folder-open"></i><span>File Manager</span></a>
+            <a href="/servers/<%= server.id %>/remote-backup" class="nav-item <%= navActive('remote-backup') %>"><i class="fas fa-cloud-arrow-up"></i><span>Remote Backup</span></a>
+            <a href="/servers/<%= server.id %>/players" class="nav-item <%= navActive('players') %>"><i class="fas fa-users"></i><span>Players</span></a>
+            <a href="/servers/<%= server.id %>/worlds" class="nav-item <%= navActive('worlds') %>"><i class="fas fa-globe"></i><span>Worlds</span></a>
+            <a href="/servers/<%= server.id %>/plugins" class="nav-item <%= navActive('plugins') %>"><i class="fas fa-puzzle-piece"></i><span>Plugins</span></a>
+            <a href="/servers/<%= server.id %>/backups" class="nav-item <%= navActive('backups') %>"><i class="fas fa-database"></i><span>Backups</span></a>
+            <a href="/servers/<%= server.id %>/subusers" class="nav-item <%= navActive('subusers') %>"><i class="fas fa-user-plus"></i><span>Subusers</span></a>
+            <a href="/servers/<%= server.id %>/startup" class="nav-item <%= navActive('startup') %>"><i class="fas fa-rocket"></i><span>Startup</span></a>
+            <a href="/servers/<%= server.id %>/settings" class="nav-item <%= navActive('settings') %>"><i class="fas fa-gear"></i><span>Settings</span></a>
+        </div>
+
+        <% } else if (inAdmin && isAdmin) { %>
+        <div class="nav-section">
+            <div class="nav-section-title"><i class="fas fa-th-large"></i> Admin</div>
+            <a href="/dashboard" class="nav-item"><i class="fas fa-arrow-left"></i><span>Dashboard</span></a>
+        </div>
+        <div class="nav-section">
+            <div class="nav-section-title"><i class="fas fa-gauge-high"></i> Manage</div>
+            <a href="/admin" class="nav-item <%= cp === '/admin' ? 'active' : '' %>"><i class="fas fa-gauge"></i><span>Overview</span></a>
+            <a href="/admin/nodes" class="nav-item <%= cp.startsWith('/admin/node') ? 'active' : '' %>"><i class="fas fa-server"></i><span>Nodes</span></a>
+            <a href="/admin/users" class="nav-item <%= cp.startsWith('/admin/user') ? 'active' : '' %>"><i class="fas fa-users-cog"></i><span>Users</span></a>
+            <a href="/admin/servers" class="nav-item <%= cp.startsWith('/admin/server') ? 'active' : '' %>"><i class="fas fa-database"></i><span>Servers</span></a>
+        </div>
+        <div class="nav-section">
+            <div class="nav-section-title"><i class="fas fa-sliders"></i> Configuration</div>
+            <a href="/admin/settings" class="nav-item <%= cp === '/admin/settings' ? 'active' : '' %>"><i class="fas fa-gear"></i><span>Settings</span></a>
+            <a href="/admin/themes" class="nav-item <%= cp === '/admin/themes' ? 'active' : '' %>"><i class="fas fa-palette"></i><span>Themes &amp; Fonts</span></a>
+        </div>
+        <div class="nav-section">
+            <div class="nav-section-title"><i class="fas fa-bolt"></i> Quick Actions</div>
+            <a href="/admin/users/create" class="nav-item"><i class="fas fa-user-plus"></i><span>Create User</span></a>
+            <a href="/admin/servers/create" class="nav-item"><i class="fas fa-plus-circle"></i><span>Create Server</span></a>
+        </div>
+
+        <% } else { %>
+        <div class="nav-section">
+            <div class="nav-section-title"><i class="fas fa-compass"></i> Navigation</div>
+            <a href="/dashboard" class="nav-item <%= cp === '/dashboard' || cp === '' ? 'active' : '' %>"><i class="fas fa-home"></i><span>Dashboard</span></a>
+            <a href="/profile" class="nav-item <%= cp === '/profile' ? 'active' : '' %>"><i class="fas fa-user"></i><span>Profile</span></a>
+            <a href="/notifications" class="nav-item <%= cp === '/notifications' ? 'active' : '' %>"><i class="fas fa-bell"></i><span>Notifications</span></a>
+            <% if (isAdmin) { %>
+            <a href="/admin" class="nav-item <%= inAdmin ? 'active' : '' %>"><i class="fas fa-shield-halved"></i><span>Admin Panel</span></a>
+            <% } %>
+        </div>
+        <% } %>
+    </div>
+
+    <div class="sidebar-footer">
+        <a href="/auth/logout" class="nav-item nav-danger" style="color:var(--danger);"><i class="fas fa-sign-out-alt"></i><span>Logout</span></a>
+        <div class="sidebar-copyright">&copy; 2026 DTG PANEL</div>
+    </div>
+</nav>
+
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+<script>
+function toggleSidebar(){var s=document.getElementById('sidebar'),o=document.getElementById('sidebarOverlay');s.classList.toggle('open');o.style.display=s.classList.contains('open')?'block':'none'}
+document.addEventListener('DOMContentLoaded',function(){var t=document.getElementById('mobileToggle');if(t)t.addEventListener('click',toggleSidebar)});
+document.querySelectorAll('.sidebar .nav-item').forEach(function(i){i.addEventListener('click',function(){if(window.innerWidth<=768)toggleSidebar()})});
+window.addEventListener('resize',function(){if(window.innerWidth>768){document.getElementById('sidebar').classList.remove('open');document.getElementById('sidebarOverlay').style.display='none'}});
+</script>

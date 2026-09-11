@@ -1,0 +1,448 @@
+        </main>
+    </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+<div id="loadingOverlay" aria-hidden="true">
+    <div class="loader-scanlines" aria-hidden="true"></div>
+    <div class="loader-scene">
+        <div class="loader-aurora" aria-hidden="true"></div>
+        <div class="loader-particles" id="loaderParticles" aria-hidden="true"></div>
+        <div class="loader-core" aria-hidden="true">
+            <div class="loader-ring ring-a"></div>
+            <div class="loader-ring ring-b"></div>
+            <div class="loader-ring ring-c"></div>
+            <div class="loader-logo"><i class="fas fa-shield-halved"></i></div>
+        </div>
+        <div class="loader-title"><%= settings.panelName || 'DTG PANEL' %></div>
+        <div class="loader-status"><span id="loadingText">Initializing...</span></div>
+        <div class="loader-bar" id="loadingProgressBar"><div id="loadingBarFill"></div></div>
+    </div>
+</div>
+
+<script>
+var _loadingInterval = null;
+var _bootInterval = null;
+function buildLoaderParticles() {
+    var c = document.getElementById('loaderParticles');
+    if (!c || c.children.length) return;
+    for (var i = 0; i < 16; i++) {
+        var p = document.createElement('span');
+        p.className = 'loader-particle';
+        var size = (Math.random() * 4 + 3).toFixed(1);
+        p.style.width = p.style.height = size + 'px';
+        p.style.left = (Math.random() * 100).toFixed(1) + '%';
+        p.style.bottom = '-12px';
+        p.style.animationDuration = (Math.random() * 4 + 5).toFixed(2) + 's';
+        p.style.animationDelay = (Math.random() * 5).toFixed(2) + 's';
+        p.style.opacity = (Math.random() * 0.5 + 0.2).toFixed(2);
+        c.appendChild(p);
+    }
+}
+function showLoading(msg, useProgress) {
+    var o = document.getElementById('loadingOverlay');
+    var t = document.getElementById('loadingText');
+    var pb = document.getElementById('loadingProgressBar');
+    var bf = document.getElementById('loadingBarFill');
+    clearInterval(_bootInterval);
+    o.classList.remove('done');
+    o.style.display = 'flex';
+    t.textContent = msg || 'Processing...';
+    if (useProgress) {
+        pb.style.display = 'block';
+        bf.style.width = '0%';
+        var p = 0;
+        clearInterval(_loadingInterval);
+        _loadingInterval = setInterval(function() {
+            p = Math.min(p + Math.random() * 12 + 2, 90);
+            bf.style.width = p + '%';
+        }, 300);
+    } else {
+        pb.style.display = 'none';
+    }
+}
+function hideLoading() {
+    var o = document.getElementById('loadingOverlay');
+    var bf = document.getElementById('loadingBarFill');
+    var pb = document.getElementById('loadingProgressBar');
+    clearInterval(_loadingInterval);
+    clearInterval(_bootInterval);
+    if (bf) bf.style.width = '100%';
+    setTimeout(function() {
+        o.classList.add('done');
+        setTimeout(function() {
+            o.style.display = 'none';
+            o.classList.remove('done');
+            if (pb) pb.style.display = 'none';
+            if (bf) bf.style.width = '0%';
+        }, 550);
+    }, 300);
+}
+function showBootSplash() {
+    var o = document.getElementById('loadingOverlay');
+    if (!o) return;
+    buildLoaderParticles();
+    var t = document.getElementById('loadingText');
+    var bf = document.getElementById('loadingBarFill');
+    var pb = document.getElementById('loadingProgressBar');
+    var stages = ['Initializing', 'Loading modules', 'Connecting to daemon', 'Starting services', 'Almost ready'];
+    o.style.display = 'flex';
+    o.classList.add('boot');
+    pb.style.display = 'block';
+    bf.style.width = '0%';
+    var p = 0, si = 0;
+    _bootInterval = setInterval(function() {
+        p = Math.min(p + Math.random() * 17 + 5, 100);
+        bf.style.width = p + '%';
+        if (p > si * 22 && si < stages.length) {
+            t.textContent = stages[si];
+            si++;
+        }
+        if (p >= 100) {
+            clearInterval(_bootInterval);
+            setTimeout(function() {
+                o.classList.add('done');
+                setTimeout(function() {
+                    o.style.display = 'none';
+                    o.classList.remove('boot', 'done');
+                    pb.style.display = 'none';
+                    bf.style.width = '0%';
+                }, 550);
+            }, 250);
+        }
+    }, 110);
+}
+function reanimatePage() {
+    var pw = document.querySelector('.page-wrap');
+    if (!pw) return;
+    pw.style.animation = 'none';
+    void pw.offsetWidth;
+    pw.style.animation = '';
+}
+document.addEventListener('click',function(e){var t=document.getElementById('userMenuTrigger'),d=document.getElementById('userDropdown');if(!d)return;if(t&&t.contains(e.target)){d.classList.toggle('show')}else if(!d.contains(e.target)){d.classList.remove('show')}});
+document.addEventListener('keydown',function(e){if(e.key==='Escape'){var d=document.getElementById('userDropdown');if(d)d.classList.remove('show')}});
+document.querySelectorAll('.alert').forEach(function(a){setTimeout(function(){a.style.opacity='0';a.style.transform='translateY(-8px)';a.style.transition='all 0.3s';setTimeout(function(){if(a.parentElement)a.remove()},300)},5000)});
+function showToast(msg,type){type=type||'info';var c=document.getElementById('toastContainer');var icons={success:'check-circle',error:'exclamation-circle',info:'info-circle',warning:'exclamation-triangle'};var el=document.createElement('div');el.className='toast '+type;var safeMsg=String(msg).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');el.innerHTML='<div class="toast-icon"><i class="fas fa-'+ (icons[type]||'info-circle') +'"></i></div><div class="toast-body">'+safeMsg+'</div><button class="toast-close" onclick="this.parentElement.remove()">&times;</button>';c.appendChild(el);setTimeout(function(){el.classList.add('removing');setTimeout(function(){if(el.parentElement)el.remove()},250)},4000)}
+document.addEventListener('keydown',function(e){if((e.ctrlKey||e.metaKey)&&e.key==='k'){e.preventDefault();var s=document.getElementById('globalSearch');if(s)s.focus()}});
+
+document.addEventListener('DOMContentLoaded',function(){
+    var welcomeSplash = document.getElementById('welcomeSplash');
+    var hasDedicatedSplash = document.getElementById('splashScreen');
+    if (welcomeSplash && typeof window.runWelcomeSplash === 'function') {
+        window.runWelcomeSplash();
+    } else if (!hasDedicatedSplash) {
+        showBootSplash();
+    } else {
+        buildLoaderParticles();
+    }
+});
+
+(function(){
+    var pageWrap = document.querySelector('.page-wrap');
+    if (!pageWrap) return;
+
+    function activateLink(url) {
+        document.querySelectorAll('.sidebar .nav-item').forEach(function(a){
+            a.classList.remove('active');
+            if (a.getAttribute('href') && url.indexOf(a.getAttribute('href')) === 0 && a.getAttribute('href') !== '/dashboard' && a.getAttribute('href') !== '/') {
+                a.classList.add('active');
+            }
+        });
+    }
+
+    function runScripts(container) {
+        var scripts = container.querySelectorAll('script');
+        scripts.forEach(function(old){
+            var s = document.createElement('script');
+            if (old.src) { s.src = old.src; }
+            else { s.textContent = old.textContent; }
+            old.parentNode.replaceChild(s, old);
+        });
+    }
+
+    function navigateTo(url, pushState) {
+        if (pushState === undefined) pushState = true;
+        if (url.indexOf('/auth/') === 0 || url.indexOf('/admin/') === 0 || url.indexOf('/profile') === 0 || url.indexOf('/notifications') === 0 || url.indexOf('/dashboard') === 0) {
+            window.location.href = url;
+            return;
+        }
+        fetch(url, { headers: { 'X-Requested-With': 'spa' } })
+        .then(function(r) { return r.text(); })
+        .then(function(html) {
+            // ── Run any registered page cleanup functions before replacing content ──
+            if (window._pageCleanups && window._pageCleanups.length) {
+                window._pageCleanups.forEach(function(fn) { try { fn(); } catch(e) {} });
+                window._pageCleanups = [];
+            }
+            var parser = new DOMParser();
+            var doc = parser.parseFromString(html, 'text/html');
+            var newPageWrap = doc.querySelector('.page-wrap');
+            var newSidebar = doc.querySelector('.sidebar');
+            if (!newPageWrap) { window.location.href = url; return; }
+            pageWrap.innerHTML = newPageWrap.innerHTML;
+            if (newSidebar) {
+                var currentSidebar = document.querySelector('.sidebar');
+                if (currentSidebar) {
+                    var currentNav = currentSidebar.querySelector('.sidebar-nav');
+                    var newNav = newSidebar.querySelector('.sidebar-nav');
+                    if (currentNav && newNav) currentNav.innerHTML = newNav.innerHTML;
+                }
+            }
+            var newTitle = doc.querySelector('title');
+            if (newTitle) document.title = newTitle.textContent;
+            if (pushState) history.pushState({}, '', url);
+            activateLink(url);
+            runScripts(pageWrap);
+            pageWrap.querySelectorAll('.alert').forEach(function(a){
+                setTimeout(function(){a.style.opacity='0';a.style.transform='translateY(-8px)';a.style.transition='all 0.3s';setTimeout(function(){if(a.parentElement)a.remove()},300)},5000);
+            });
+            reanimatePage();
+            window.scrollTo(0, 0);
+        })
+        .catch(function(){ window.location.href = url; });
+    }
+
+    document.addEventListener('click', function(e) {
+        var link = e.target.closest('.sidebar .nav-item[href]');
+        if (!link) return;
+        var href = link.getAttribute('href');
+        if (!href || href.indexOf('/auth/') === 0) return;
+        if (e.ctrlKey || e.metaKey || e.shiftKey) return;
+        e.preventDefault();
+        navigateTo(href);
+    });
+
+    window.addEventListener('popstate', function() {
+        navigateTo(location.pathname, false);
+    });
+})();
+console.log('%c <%- settings.panelName || "DTG PANEL" %> ','background:linear-gradient(135deg,#6366f1,#8b5cf6);color:white;font-size:12px;font-weight:bold;padding:4px 10px;border-radius:4px;');
+</script>
+
+<!-- ═══════════════════════════════════════════════════════════
+     GLOBAL CONFIRM MODAL — replaces browser confirm() on every page
+     ═══════════════════════════════════════════════════════════ -->
+<style>
+#amcConfirmOverlay {
+    position: fixed; inset: 0; z-index: 99998;
+    background: rgba(0,0,0,0.65);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none;
+    transition: opacity .22s cubic-bezier(.4,0,.2,1);
+}
+#amcConfirmOverlay.open { opacity: 1; pointer-events: all; }
+#amcConfirmBox {
+    background: var(--bg-secondary, #1a1a2e);
+    border: 1px solid var(--border, rgba(255,255,255,.1));
+    border-radius: 18px;
+    padding: 0;
+    width: 100%; max-width: 440px;
+    box-shadow: 0 32px 80px rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,.04);
+    transform: scale(.92) translateY(18px);
+    transition: transform .25s cubic-bezier(.34,1.56,.64,1), opacity .22s;
+    opacity: 0;
+    overflow: hidden;
+}
+#amcConfirmOverlay.open #amcConfirmBox { transform: scale(1) translateY(0); opacity: 1; }
+#amcConfirmIconWrap {
+    display: flex; align-items: center; justify-content: center;
+    padding: 28px 28px 0;
+}
+#amcConfirmIconCircle {
+    width: 56px; height: 56px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    background: rgba(239,68,68,.15);
+    border: 2px solid rgba(239,68,68,.35);
+    color: #ef4444;
+    animation: amcPulse 2s infinite;
+}
+@keyframes amcPulse {
+    0%,100% { box-shadow: 0 0 0 0 rgba(239,68,68,.3); }
+    50%      { box-shadow: 0 0 0 10px rgba(239,68,68,0); }
+}
+#amcConfirmIconCircle.warn { background:rgba(245,158,11,.15); border-color:rgba(245,158,11,.35); color:#f59e0b; animation: amcPulseWarn 2s infinite; }
+@keyframes amcPulseWarn {
+    0%,100% { box-shadow: 0 0 0 0 rgba(245,158,11,.3); }
+    50%      { box-shadow: 0 0 0 10px rgba(245,158,11,0); }
+}
+#amcConfirmBody { padding: 20px 28px 8px; text-align: center; }
+#amcConfirmTitle { font-size: 18px; font-weight: 700; color: var(--text-primary,#fff); margin-bottom: 10px; line-height: 1.3; }
+#amcConfirmMsg { font-size: 14px; color: var(--text-secondary,#aaa); line-height: 1.6; }
+#amcConfirmDivider { height: 1px; background: var(--border,rgba(255,255,255,.08)); margin: 20px 0 0; }
+#amcConfirmFooter {
+    display: flex; gap: 0; padding: 0;
+}
+#amcConfirmFooter button {
+    flex: 1; padding: 15px 18px; font-size: 14px; font-weight: 600;
+    border: none; cursor: pointer; transition: background .15s, color .15s;
+    font-family: inherit; letter-spacing: .01em;
+}
+#amcConfirmCancel {
+    background: transparent; color: var(--text-secondary,#aaa);
+    border-right: 1px solid var(--border,rgba(255,255,255,.08)) !important;
+    border-radius: 0 0 0 18px;
+}
+#amcConfirmCancel:hover { background: rgba(255,255,255,.05); color: var(--text-primary,#fff); }
+#amcConfirmOk {
+    background: linear-gradient(135deg,#ef4444,#dc2626);
+    color: #fff; border-radius: 0 0 18px 0;
+}
+#amcConfirmOk:hover { background: linear-gradient(135deg,#f87171,#ef4444); }
+#amcConfirmOk.warn-btn { background: linear-gradient(135deg,#f59e0b,#d97706); }
+#amcConfirmOk.warn-btn:hover { background: linear-gradient(135deg,#fbbf24,#f59e0b); }
+</style>
+
+<div id="amcConfirmOverlay">
+    <div id="amcConfirmBox" role="dialog" aria-modal="true" aria-labelledby="amcConfirmTitle">
+        <div id="amcConfirmIconWrap">
+            <div id="amcConfirmIconCircle"><i id="amcConfirmIcon" class="fas fa-trash-alt"></i></div>
+        </div>
+        <div id="amcConfirmBody">
+            <div id="amcConfirmTitle">Are you sure?</div>
+            <div id="amcConfirmMsg">This action cannot be undone.</div>
+        </div>
+        <div id="amcConfirmDivider"></div>
+        <div id="amcConfirmFooter">
+            <button id="amcConfirmCancel"><i class="fas fa-times"></i> Cancel</button>
+            <button id="amcConfirmOk"><i class="fas fa-check"></i> Confirm</button>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    // ── Determine icon + style from message keywords ────────────────────────
+    function getConfirmStyle(msg) {
+        var m = (msg || '').toLowerCase();
+        if (m.includes('delete') || m.includes('remove') || m.includes('irreversible') || m.includes('permanently'))
+            return { icon: 'fa-trash-alt', circle: '', btn: '', title: 'Delete Confirmation' };
+        if (m.includes('reinstall') || m.includes('reset') || m.includes('cannot be undone') || m.includes('uninstall'))
+            return { icon: 'fa-exclamation-triangle', circle: 'warn', btn: 'warn-btn', title: 'Warning' };
+        if (m.includes('restore') || m.includes('replace'))
+            return { icon: 'fa-history', circle: 'warn', btn: 'warn-btn', title: 'Restore Confirmation' };
+        if (m.includes('disable') || m.includes('ban'))
+            return { icon: 'fa-ban', circle: '', btn: '', title: 'Confirm Action' };
+        return { icon: 'fa-question-circle', circle: 'warn', btn: 'warn-btn', title: 'Confirm' };
+    }
+
+    // ── Core modal renderer ─────────────────────────────────────────────────
+    var _resolve = null;
+    var overlay  = document.getElementById('amcConfirmOverlay');
+    var box      = document.getElementById('amcConfirmBox');
+
+    function showConfirm(msg, okLabel, cancelLabel) {
+        return new Promise(function(resolve) {
+            _resolve = resolve;
+            var style = getConfirmStyle(msg);
+
+            document.getElementById('amcConfirmIcon').className    = 'fas ' + style.icon;
+            document.getElementById('amcConfirmIconCircle').className = style.circle ? 'warn' : '';
+            document.getElementById('amcConfirmTitle').textContent  = style.title;
+            document.getElementById('amcConfirmMsg').innerHTML      = msg;
+            document.getElementById('amcConfirmOk').className       = style.btn ? 'warn-btn' : '';
+            document.getElementById('amcConfirmOk').innerHTML       = '<i class="fas fa-check"></i> ' + (okLabel || 'Confirm');
+            document.getElementById('amcConfirmCancel').innerHTML   = '<i class="fas fa-times"></i> ' + (cancelLabel || 'Cancel');
+
+            overlay.classList.add('open');
+            document.body.style.overflow = 'hidden';
+            setTimeout(function(){ document.getElementById('amcConfirmOk').focus(); }, 50);
+        });
+    }
+
+    function closeConfirm(result) {
+        overlay.classList.remove('open');
+        document.body.style.overflow = '';
+        if (_resolve) { _resolve(result); _resolve = null; }
+    }
+
+    document.getElementById('amcConfirmOk').addEventListener('click', function() { closeConfirm(true); });
+    document.getElementById('amcConfirmCancel').addEventListener('click', function() { closeConfirm(false); });
+    overlay.addEventListener('click', function(e) { if (e.target === overlay) closeConfirm(false); });
+    document.addEventListener('keydown', function(e) {
+        if (!overlay.classList.contains('open')) return;
+        if (e.key === 'Escape') closeConfirm(false);
+        if (e.key === 'Enter') closeConfirm(true);
+    });
+
+    // ── Override window.confirm globally ────────────────────────────────────
+    // Sync confirm() is replaced with async version. All callers that do:
+    //   if (!confirm('...')) return;
+    // are auto-patched by wrapping each call site to use the async modal.
+    // We DO NOT literally override window.confirm (it's synchronous by spec),
+    // instead we expose window.amc_confirm() and patch callers via a MutationObserver
+    // trick — but the cleanest approach: override window.confirm to return true
+    // instantly for backward-compat, and expose window.amc_confirm for new code.
+    //
+    // For the existing pages that use the sync pattern we use a smarter approach:
+    // override window.confirm to SCHEDULE a modal and throw to stop execution,
+    // then re-run the queued action after OK. But this is complex and fragile.
+    //
+    // BEST approach for a panel: replace window.confirm with async shim that
+    // uses a callback queue. All existing "if (!confirm(...)) return" patterns
+    // become "confirmModal(...).then(ok => { if (!ok) return; ... })"
+    // We do this transparently below by making confirm() return a thenable:
+
+    window._amcConfirmQueue = [];
+    window.amc_confirm = showConfirm;
+    window.showConfirm = showConfirm;
+    window.confirmModal = showConfirm;
+
+    // Polyfill: replace window.confirm with our modal
+    // Since confirm() is sync, we can't make it truly async.
+    // Instead: store the pending action and show modal; block via exception trick.
+    // The cleanest real-world solution: replace existing onclick handlers.
+    // We patch ALL onclick handlers on DOMContentLoaded:
+
+    function patchConfirmCalls() {
+        // Find all elements with onclick attributes containing confirm(
+        // Skip elements already patched (marked with data-amc-patched)
+        var allEls = document.querySelectorAll('[onclick]:not([data-amc-patched])');
+        allEls.forEach(function(el) {
+            var orig = el.getAttribute('onclick');
+            if (!orig || orig.indexOf('confirm(') === -1) return;
+            // Mark as patched so we don't re-process on next mutation
+            el.setAttribute('data-amc-patched', '1');
+            // Replace inline onclick with async version
+            el.removeAttribute('onclick');
+            el.__amcOrigOnclick = orig;
+            el.addEventListener('click', function(e) {
+                e.preventDefault(); e.stopImmediatePropagation();
+                // Extract confirm message
+                var msgMatch = orig.match(/confirm\(['"`]([\s\S]*?)['"`]\)/);
+                var msg = msgMatch ? msgMatch[1] : 'Are you sure?';
+                showConfirm(msg).then(function(ok) {
+                    if (!ok) return;
+                    // Run original code with confirm() always returning true
+                    var patchedCode = orig.replace(/confirm\(['"`][\s\S]*?['"`]\)\s*(?:===?\s*(?:true|false)\s*)?/g, 'true');
+                    patchedCode = patchedCode.replace(/!\s*true/g, 'false');
+                    try { (new Function('event', patchedCode))(e); } catch(err) { console.warn('[AMC Confirm]', err); }
+                });
+            });
+        });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', patchConfirmCalls);
+    } else {
+        patchConfirmCalls();
+    }
+    // Patch after dynamic content — but only watch for added NODES, not text changes
+    // This avoids re-triggering on every stats textContent update
+    var _patchTimer;
+    var _obs = new MutationObserver(function(mutations) {
+        // Only act if actual element nodes were added (not just text changes)
+        var hasNewNodes = mutations.some(function(m) {
+            return Array.from(m.addedNodes).some(function(n) { return n.nodeType === 1; }); // ELEMENT_NODE
+        });
+        if (!hasNewNodes) return;
+        clearTimeout(_patchTimer);
+        _patchTimer = setTimeout(patchConfirmCalls, 300);
+    });
+    _obs.observe(document.body, { childList: true, subtree: true });
+})();
+</script>
+</body>
+</html>

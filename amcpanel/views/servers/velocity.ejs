@@ -1,0 +1,377 @@
+<%- include('../partials/header') %>
+
+<div class="page-header" data-server-id="<%= server.id %>" data-server-port="<%= server.port %>">
+    <div>
+        <h1 class="page-title"><i class="fas fa-rocket"></i> Velocity Configuration</h1>
+        <p class="page-subtitle"><i class="fas fa-network-wired"></i> <%= server.name %> - Modern Proxy Configuration</p>
+    </div>
+    <div class="page-actions">
+        <button class="btn btn-ghost" onclick="resetToDefaults()"><i class="fas fa-undo"></i> Reset to Defaults</button>
+        <button class="btn btn-ghost" onclick="openTextEditor()"><i class="fas fa-code"></i> Text Editor</button>
+        <a href="/servers/<%= server.id %>/files" class="btn btn-ghost"><i class="fas fa-folder"></i> File Manager</a>
+        <button class="btn btn-primary" onclick="saveVelocityConfig()"><i class="fas fa-save"></i> Save Configuration</button>
+    </div>
+</div>
+
+<div class="card" style="border-left:3px solid var(--accent);background:var(--accent-dim);">
+    <div class="card-body">
+        <div class="d-flex gap-3 align-center">
+            <i class="fas fa-shield-alt" style="font-size:24px;color:var(--accent);"></i>
+            <div class="flex-1">
+                <div class="fw-600 mb-1"><i class="fas fa-lock"></i> Smart Port Protection Active</div>
+                <div class="text-sm text-secondary">Proxy bind port is automatically managed (currently: <strong><%= server.port %></strong>) and cannot be changed. All other Velocity settings are fully customizable.</div>
+            </div>
+            <span class="badge badge-danger">PROTECTED</span>
+        </div>
+    </div>
+</div>
+
+<form id="velocityForm">
+    <div class="grid-2 gap-3 mb-3">
+
+        <div class="card">
+            <div class="card-header"><h3><i class="fas fa-rocket"></i> Basic Proxy Settings</h3></div>
+            <div class="card-body">
+                <div class="form-group">
+                    <label class="form-label">Bind Address <span class="badge badge-danger" style="font-size:10px;">Protected</span></label>
+                    <input type="text" name="bind" class="form-control" value="0.0.0.0:<%= server.port %>" disabled>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Message of the Day (MOTD)</label>
+                    <input type="text" name="motd" class="form-control" placeholder="A Velocity Server">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Show Max Players</label>
+                    <input type="number" name="show-max-players" class="form-control" min="1" max="10000" value="500">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Online Mode</label>
+                    <label class="d-flex gap-1 align-center" style="cursor:pointer;"><input type="checkbox" name="online-mode" checked style="accent-color:var(--accent);"> Verify with Mojang servers</label>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><h3><i class="fas fa-user-shield"></i> Player Forwarding</h3></div>
+            <div class="card-body">
+                <div class="form-group">
+                    <label class="form-label">Forwarding Mode</label>
+                    <select name="player-info-forwarding-mode" class="form-control">
+                        <option value="NONE">None</option>
+                        <option value="LEGACY">Legacy (BungeeCord)</option>
+                        <option value="MODERN" selected>Modern (Velocity)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Forwarding Secret File</label>
+                    <input type="text" name="forwarding-secret-file" class="form-control" value="forwarding.secret">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Prevent Client Proxy Connections</label>
+                    <label class="d-flex gap-1 align-center" style="cursor:pointer;"><input type="checkbox" name="prevent-client-proxy-connections" style="accent-color:var(--accent);"> Block connections from other proxies</label>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Enable Player Address Logging</label>
+                    <label class="d-flex gap-1 align-center" style="cursor:pointer;"><input type="checkbox" name="enable-player-address-logging" checked style="accent-color:var(--accent);"> Log player IP addresses</label>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><h3><i class="fas fa-network-wired"></i> Server Network</h3></div>
+            <div class="card-body">
+                <div class="form-group">
+                    <label class="form-label">Backend Servers</label>
+                    <div id="servers-list" class="mb-1"></div>
+                    <button type="button" class="btn btn-sm btn-ghost" onclick="addServer()"><i class="fas fa-plus"></i> Add Server</button>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Try Order</label>
+                    <input type="text" name="try" class="form-control" placeholder="lobby,survival">
+                    <span class="form-hint">Comma-separated server names</span>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Forced Hosts</label>
+                    <div id="forced-hosts-list" class="mb-1"></div>
+                    <button type="button" class="btn btn-sm btn-ghost" onclick="addForcedHost()"><i class="fas fa-plus"></i> Add Forced Host</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><h3><i class="fas fa-plug"></i> Connection Settings</h3></div>
+            <div class="card-body">
+                <div class="form-group">
+                    <label class="form-label">Kick Existing Players</label>
+                    <label class="d-flex gap-1 align-center" style="cursor:pointer;"><input type="checkbox" name="kick-existing-players" style="accent-color:var(--accent);"> Kick players with same name on join</label>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Ping Passthrough</label>
+                    <select name="ping-passthrough" class="form-control">
+                        <option value="DISABLED">Disabled</option>
+                        <option value="MODS">Mods Only</option>
+                        <option value="DESCRIPTION">Description Only</option>
+                        <option value="ALL">All</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Failover on Unexpected Disconnect</label>
+                    <label class="d-flex gap-1 align-center" style="cursor:pointer;"><input type="checkbox" name="failover-on-unexpected-server-disconnect" checked style="accent-color:var(--accent);"> Move players to fallback server</label>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">BungeeCord Plugin Message Channel</label>
+                    <label class="d-flex gap-1 align-center" style="cursor:pointer;"><input type="checkbox" name="bungee-plugin-message-channel" checked style="accent-color:var(--accent);"> Enable BungeeCord plugin compatibility</label>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><h3><i class="fas fa-cogs"></i> Advanced Settings</h3></div>
+            <div class="card-body">
+                <div class="form-group">
+                    <label class="form-label">Compression Threshold</label>
+                    <input type="number" name="compression-threshold" class="form-control" value="256" min="0">
+                    <span class="form-hint">Packet size threshold for compression (bytes)</span>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Compression Level</label>
+                    <input type="number" name="compression-level" class="form-control" value="-1" min="-1" max="9">
+                    <span class="form-hint">Compression level (-1 default, 0-9)</span>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Login Rate Limit</label>
+                    <input type="number" name="login-ratelimit" class="form-control" value="3000" min="0">
+                    <span class="form-hint">Milliseconds between login attempts</span>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Connection Timeout</label>
+                    <input type="number" name="connection-timeout" class="form-control" value="5000" min="1000">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Read Timeout</label>
+                    <input type="number" name="read-timeout" class="form-control" value="30000" min="1000">
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><h3><i class="fas fa-file-alt"></i> Logging & Query</h3></div>
+            <div class="card-body">
+                <div class="form-group">
+                    <label class="form-label">Show Ping Requests</label>
+                    <label class="d-flex gap-1 align-center" style="cursor:pointer;"><input type="checkbox" name="show-ping-requests" style="accent-color:var(--accent);"> Log server list ping requests</label>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Log Command Executions</label>
+                    <label class="d-flex gap-1 align-center" style="cursor:pointer;"><input type="checkbox" name="log-command-executions" style="accent-color:var(--accent);"> Log all command executions</label>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Log Player Connections</label>
+                    <label class="d-flex gap-1 align-center" style="cursor:pointer;"><input type="checkbox" name="log-player-connections" checked style="accent-color:var(--accent);"> Log join/leave events</label>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Announce Proxy Commands</label>
+                    <label class="d-flex gap-1 align-center" style="cursor:pointer;"><input type="checkbox" name="announce-proxy-commands" checked style="accent-color:var(--accent);"> Show in tab completion</label>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Enable Query</label>
+                    <label class="d-flex gap-1 align-center" style="cursor:pointer;"><input type="checkbox" name="query-enabled" style="accent-color:var(--accent);"> Enable GameSpy4 query protocol</label>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Query Port</label>
+                    <input type="number" name="query-port" class="form-control" value="" min="1" max="65535">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Query Map</label>
+                    <input type="text" name="query-map" class="form-control" value="Velocity">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Show Plugins in Query</label>
+                    <label class="d-flex gap-1 align-center" style="cursor:pointer;"><input type="checkbox" name="query-show-plugins" style="accent-color:var(--accent);"> Show plugin list in query response</label>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</form>
+
+<script>
+const pageHeader = document.querySelector('.page-header');
+const serverId = pageHeader.dataset.serverId || '1';
+const serverPort = parseInt(pageHeader.dataset.serverPort) || 25565;
+let currentConfig = {};
+
+function openTextEditor() { window.open('/servers/' + serverId + '/files/view?path=velocity.toml', '_blank'); }
+
+document.addEventListener('DOMContentLoaded', function() { loadVelocityConfig(); });
+
+async function loadVelocityConfig() {
+    try {
+        const response = await fetch('/servers/' + serverId + '/velocity/get');
+        const data = await response.json();
+        if (data.success) { currentConfig = data.config; populateForm(currentConfig); }
+        else showToast('Error loading config: ' + (data.error || 'Unknown'), 'error');
+    } catch (error) { console.error(error); showToast('Failed to load Velocity config', 'error'); }
+}
+
+function populateForm(config) {
+    setFormValue('motd', config.motd || 'A Velocity Server');
+    setFormValue('show-max-players', config['show-max-players'] || 500);
+    setFormValue('online-mode', config['online-mode'] !== false);
+    setFormValue('prevent-client-proxy-connections', config['prevent-client-proxy-connections'] || false);
+    setFormValue('player-info-forwarding-mode', config['player-info-forwarding-mode'] || 'MODERN');
+    setFormValue('forwarding-secret-file', config['forwarding-secret-file'] || 'forwarding.secret');
+    setFormValue('enable-player-address-logging', config['enable-player-address-logging'] !== false);
+    setFormValue('kick-existing-players', config['kick-existing-players'] || false);
+    setFormValue('ping-passthrough', config['ping-passthrough'] || 'DISABLED');
+    setFormValue('failover-on-unexpected-server-disconnect', config['failover-on-unexpected-server-disconnect'] !== false);
+    setFormValue('bungee-plugin-message-channel', config['bungee-plugin-message-channel'] !== false);
+    setFormValue('show-ping-requests', config['show-ping-requests'] || false);
+    setFormValue('log-command-executions', config['log-command-executions'] || false);
+    setFormValue('log-player-connections', config['log-player-connections'] !== false);
+    setFormValue('announce-proxy-commands', config['announce-proxy-commands'] !== false);
+    if (config.advanced) {
+        setFormValue('compression-threshold', config.advanced['compression-threshold'] || 256);
+        setFormValue('compression-level', config.advanced['compression-level'] || -1);
+        setFormValue('login-ratelimit', config.advanced['login-ratelimit'] || 3000);
+        setFormValue('connection-timeout', config.advanced['connection-timeout'] || 5000);
+        setFormValue('read-timeout', config.advanced['read-timeout'] || 30000);
+    }
+    if (config.query) {
+        setFormValue('query-enabled', config.query.enabled || false);
+        setFormValue('query-port', config.query.port || (serverPort + 1));
+        setFormValue('query-map', config.query.map || 'Velocity');
+        setFormValue('query-show-plugins', config.query['show-plugins'] || false);
+    }
+    populateServers(config.servers || {});
+    if (config.try && Array.isArray(config.try)) setFormValue('try', config.try.join(','));
+    populateForcedHosts(config['forced-hosts'] || {});
+}
+
+function setFormValue(name, value) {
+    const element = document.querySelector('[name="' + name + '"]');
+    if (!element) return;
+    if (element.type === 'checkbox') element.checked = Boolean(value);
+    else element.value = value;
+}
+
+function getFormValue(name, type) {
+    const element = document.querySelector('[name="' + name + '"]');
+    if (!element) return type === 'checkbox' ? false : '';
+    return type === 'checkbox' ? element.checked : element.value;
+}
+
+function populateServers(servers) {
+    const serversList = document.getElementById('servers-list');
+    serversList.innerHTML = '';
+    Object.entries(servers).forEach(function(e) { addServerItem(e[0], e[1]); });
+    if (Object.keys(servers).length === 0) addServerItem('lobby', 'localhost:25565');
+}
+
+function addServerItem(name, address) {
+    if (!name) name = ''; if (!address) address = '';
+    const serversList = document.getElementById('servers-list');
+    const item = document.createElement('div');
+    item.className = 'd-flex gap-1 mb-1';
+    item.style.cssText = 'padding:8px;background:var(--bg-tertiary);border-radius:var(--r-md);';
+    item.innerHTML = '<input type="text" class="form-control" placeholder="Server name" value="' + name + '" style="font-size:13px;">' +
+        '<input type="text" class="form-control" placeholder="address:port" value="' + address + '" style="font-size:13px;">' +
+        '<button type="button" class="btn btn-sm btn-danger" onclick="this.parentElement.remove()"><i class="fas fa-trash"></i></button>';
+    serversList.appendChild(item);
+}
+
+function addServer() { addServerItem(); }
+
+function populateForcedHosts(forcedHosts) {
+    const list = document.getElementById('forced-hosts-list');
+    list.innerHTML = '';
+    Object.entries(forcedHosts).forEach(function(e) { addForcedHostItem(e[0], e[1]); });
+}
+
+function addForcedHostItem(host, server) {
+    if (!host) host = ''; if (!server) server = '';
+    const list = document.getElementById('forced-hosts-list');
+    const item = document.createElement('div');
+    item.className = 'd-flex gap-1 mb-1';
+    item.style.cssText = 'padding:8px;background:var(--bg-tertiary);border-radius:var(--r-md);';
+    item.innerHTML = '<input type="text" class="form-control" placeholder="domain.com" value="' + host + '" style="font-size:13px;">' +
+        '<input type="text" class="form-control" placeholder="server name" value="' + server + '" style="font-size:13px;">' +
+        '<button type="button" class="btn btn-sm btn-danger" onclick="this.parentElement.remove()"><i class="fas fa-trash"></i></button>';
+    list.appendChild(item);
+}
+
+function addForcedHost() { addForcedHostItem(); }
+
+async function saveVelocityConfig() {
+    const config = {
+        'config-version': '2.6',
+        'bind': '0.0.0.0:' + serverPort,
+        'motd': getFormValue('motd') || 'A Velocity Server',
+        'show-max-players': parseInt(getFormValue('show-max-players')) || 500,
+        'online-mode': getFormValue('online-mode', 'checkbox'),
+        'prevent-client-proxy-connections': getFormValue('prevent-client-proxy-connections', 'checkbox'),
+        'player-info-forwarding-mode': getFormValue('player-info-forwarding-mode') || 'MODERN',
+        'forwarding-secret-file': getFormValue('forwarding-secret-file') || 'forwarding.secret',
+        'enable-player-address-logging': getFormValue('enable-player-address-logging', 'checkbox'),
+        'kick-existing-players': getFormValue('kick-existing-players', 'checkbox'),
+        'ping-passthrough': getFormValue('ping-passthrough') || 'DISABLED',
+        'failover-on-unexpected-server-disconnect': getFormValue('failover-on-unexpected-server-disconnect', 'checkbox'),
+        'bungee-plugin-message-channel': getFormValue('bungee-plugin-message-channel', 'checkbox'),
+        'show-ping-requests': getFormValue('show-ping-requests', 'checkbox'),
+        'log-command-executions': getFormValue('log-command-executions', 'checkbox'),
+        'log-player-connections': getFormValue('log-player-connections', 'checkbox'),
+        'announce-proxy-commands': getFormValue('announce-proxy-commands', 'checkbox')
+    };
+    config.servers = {};
+    document.querySelectorAll('#servers-list > div').forEach(function(item) {
+        var inputs = item.querySelectorAll('input');
+        var name = inputs[0].value.trim(), address = inputs[1].value.trim();
+        if (name && address) config.servers[name] = address;
+    });
+    var tryOrder = getFormValue('try');
+    if (tryOrder) config.try = tryOrder.split(',').map(function(s) { return s.trim(); }).filter(function(s) { return s; });
+    config['forced-hosts'] = {};
+    document.querySelectorAll('#forced-hosts-list > div').forEach(function(item) {
+        var inputs = item.querySelectorAll('input');
+        var host = inputs[0].value.trim(), server = inputs[1].value.trim();
+        if (host && server) config['forced-hosts'][host] = server;
+    });
+    config.advanced = {
+        'compression-threshold': parseInt(getFormValue('compression-threshold')) || 256,
+        'compression-level': parseInt(getFormValue('compression-level')) || -1,
+        'login-ratelimit': parseInt(getFormValue('login-ratelimit')) || 3000,
+        'connection-timeout': parseInt(getFormValue('connection-timeout')) || 5000,
+        'read-timeout': parseInt(getFormValue('read-timeout')) || 30000
+    };
+    config.query = {
+        'enabled': getFormValue('query-enabled', 'checkbox'),
+        'port': parseInt(getFormValue('query-port')) || (serverPort + 1),
+        'map': getFormValue('query-map') || 'Velocity',
+        'show-plugins': getFormValue('query-show-plugins', 'checkbox')
+    };
+    const btn = document.querySelector('.btn-primary');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...'; btn.disabled = true;
+    try {
+        const response = await fetch('/servers/' + serverId + '/velocity/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ config }) });
+        const data = await response.json();
+        if (data.success) { showToast(data.message || 'Saved!', 'success'); if (data.warning) setTimeout(function(){ showToast(data.warning, 'warning'); }, 2000); }
+        else showToast('Error: ' + (data.error || 'Failed'), 'error');
+    } catch (error) { console.error(error); showToast('Failed to save', 'error'); }
+    finally { btn.innerHTML = originalText; btn.disabled = false; }
+}
+
+async function resetToDefaults() {
+    if (!confirm('Reset all settings to defaults?')) return;
+    try {
+        const response = await fetch('/servers/' + serverId + '/velocity/reset', { method: 'POST' });
+        const data = await response.json();
+        if (data.success) { showToast('Reset to defaults!', 'success'); currentConfig = data.config; populateForm(currentConfig); }
+        else showToast('Error: ' + (data.error || 'Failed'), 'error');
+    } catch (error) { console.error(error); showToast('Failed to reset', 'error'); }
+}
+
+document.addEventListener('keydown', function(e) { if (e.ctrlKey || e.metaKey) { if (e.key === 's') { e.preventDefault(); saveVelocityConfig(); } } });
+</script>
+
+<%- include('../partials/footer') %>

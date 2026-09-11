@@ -1,0 +1,229 @@
+<%- include('../partials/header') %>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title"><i class="fas fa-store"></i> Plugin Marketplace</h1>
+        <p class="page-subtitle"><%= server.name %></p>
+    </div>
+    <div class="page-actions">
+        <a href="/servers/<%= server.id %>/plugins" class="btn btn-ghost"><i class="fas fa-arrow-left"></i> Back to Plugins</a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="d-flex gap-1 flex-wrap align-center">
+            <span class="text-sm fw-600 text-muted mr-1">Source:</span>
+            <button class="btn btn-sm <%= provider === 'all' ? 'btn-primary' : 'btn-ghost' %> provider-tab" data-provider="all"><i class="fas fa-globe"></i> All Sources</button>
+            <button class="btn btn-sm <%= provider === 'modrinth' ? 'btn-primary' : 'btn-ghost' %> provider-tab" data-provider="modrinth"><i class="fas fa-cube"></i> Modrinth</button>
+            <button class="btn btn-sm <%= provider === 'spiget' ? 'btn-primary' : 'btn-ghost' %> provider-tab" data-provider="spiget"><i class="fas fa-fire"></i> SpigotMC</button>
+            <button class="btn btn-sm <%= provider === 'hangar' ? 'btn-primary' : 'btn-ghost' %> provider-tab" data-provider="hangar"><i class="fas fa-paper-plane"></i> Hangar</button>
+            <button class="btn btn-sm <%= provider === 'bukkit' ? 'btn-primary' : 'btn-ghost' %> provider-tab" data-provider="bukkit"><i class="fas fa-book"></i> BukkitDev</button>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form id="searchForm" class="d-flex gap-2">
+            <input type="text" id="searchInput" name="q" class="form-control flex-1" placeholder="Search plugins (e.g., EssentialsX, WorldEdit, Vault)..." value="<%= typeof query !== 'undefined' ? query : '' %>">
+            <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i> Search</button>
+        </form>
+    </div>
+</div>
+
+<% if (!query || query === '') { %>
+<div class="card">
+    <div class="card-header"><h3>Popular Plugins</h3></div>
+    <div class="card-body">
+        <div class="d-flex gap-1 flex-wrap">
+            <button class="btn btn-sm btn-ghost quick-search" data-query="EssentialsX">EssentialsX</button>
+            <button class="btn btn-sm btn-ghost quick-search" data-query="WorldEdit">WorldEdit</button>
+            <button class="btn btn-sm btn-ghost quick-search" data-query="Vault">Vault</button>
+            <button class="btn btn-sm btn-ghost quick-search" data-query="LuckPerms">LuckPerms</button>
+            <button class="btn btn-sm btn-ghost quick-search" data-query="WorldGuard">WorldGuard</button>
+            <button class="btn btn-sm btn-ghost quick-search" data-query="Citizens">Citizens</button>
+            <button class="btn btn-sm btn-ghost quick-search" data-query="Multiverse">Multiverse</button>
+            <button class="btn btn-sm btn-ghost quick-search" data-query="PlaceholderAPI">PlaceholderAPI</button>
+        </div>
+    </div>
+</div>
+<% } %>
+
+<div id="pluginsContainer">
+    <% if (plugins && plugins.length > 0) { %>
+    <div class="grid-3 gap-3 mb-3">
+        <% plugins.forEach(plugin => { %>
+        <div class="card" style="display:flex;flex-direction:column;">
+            <div class="card-header d-flex align-center gap-2">
+                <% if (plugin.icon) { %>
+                    <img src="<%= plugin.icon %>" alt="" style="width:40px;height:40px;border-radius:var(--r-md);object-fit:cover;" onerror="this.style.display='none'">
+                <% } %>
+                <div style="width:40px;height:40px;border-radius:var(--r-md);background:var(--bg-tertiary);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="fas fa-puzzle-piece" style="color:var(--text-muted);"></i></div>
+                <div class="flex-1" style="min-width:0;">
+                    <div class="fw-600 text-sm" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><%= plugin.name %></div>
+                    <% if (plugin.author) { %><div class="text-xs text-muted">by <%= plugin.author %></div><% } %>
+                </div>
+                <% if (plugin.source === 'modrinth') { %><span class="badge badge-success" title="Modrinth"><i class="fas fa-cube"></i></span><% } %>
+                <% if (plugin.source === 'spiget') { %><span class="badge badge-warning" title="SpigotMC"><i class="fas fa-fire"></i></span><% } %>
+                <% if (plugin.source === 'hangar') { %><span class="badge badge-info" title="Hangar"><i class="fas fa-paper-plane"></i></span><% } %>
+                <% if (plugin.source === 'bukkit') { %><span class="badge badge-accent" title="BukkitDev"><i class="fas fa-book"></i></span><% } %>
+            </div>
+            <div class="card-body" style="flex:1;display:flex;flex-direction:column;">
+                <p class="text-sm text-secondary mb-2 flex-1" style="overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;"><%= plugin.description || 'No description available' %></p>
+                <div class="d-flex gap-2 flex-wrap text-xs text-muted mb-2">
+                    <% if (plugin.downloads) { %><span><i class="fas fa-download"></i> <%= plugin.downloads.toLocaleString() %></span><% } %>
+                    <% if (plugin.follows) { %><span><i class="fas fa-heart"></i> <%= plugin.follows.toLocaleString() %></span><% } %>
+                    <% if (plugin.stars) { %><span><i class="fas fa-star"></i> <%= plugin.stars %></span><% } %>
+                    <% if (plugin.rating && plugin.rating > 0) { %><span><i class="fas fa-star" style="color:var(--warning);"></i> <%= plugin.rating.toFixed(1) %></span><% } %>
+                </div>
+                <% if (plugin.categories && plugin.categories.length > 0) { %>
+                <div class="d-flex gap-1 flex-wrap mb-2">
+                    <% plugin.categories.slice(0, 3).forEach(cat => { %><span class="badge badge-accent" style="font-size:11px;"><%= cat %></span><% }) %>
+                </div>
+                <% } %>
+            </div>
+            <div class="card-footer" style="border-top:1px solid var(--border);padding:12px;">
+                <div class="d-flex gap-1 mb-1">
+                    <% if (plugin.url) { %><a href="<%= plugin.url %>" target="_blank" class="btn btn-sm btn-ghost flex-1"><i class="fas fa-external-link-alt"></i> Details</a><% } %>
+                    <% if (plugin.hasVersions) { %>
+                    <button class="btn btn-sm btn-ghost flex-1 select-version-btn"
+                        data-plugin-name="<%= plugin.name %>"
+                        data-source="<%= plugin.source %>"
+                        data-project-id="<%= plugin.projectId || '' %>"
+                        data-resource-id="<%= plugin.resourceId || plugin.id || '' %>"
+                        data-server-id="<%= server.id %>">
+                        <i class="fas fa-list"></i> Versions
+                    </button>
+                    <% } %>
+                </div>
+                <button class="btn btn-sm btn-primary" style="width:100%;" 
+                    data-plugin-name="<%= plugin.name %>"
+                    data-source="<%= plugin.source %>"
+                    data-project-id="<%= plugin.projectId || '' %>"
+                    data-resource-id="<%= plugin.resourceId || plugin.id || '' %>"
+                    data-server-id="<%= server.id %>">
+                    <i class="fas fa-download"></i> Install Latest
+                </button>
+            </div>
+        </div>
+        <% }) %>
+    </div>
+    <% if (hasMore || page > 1) { %>
+    <div class="d-flex justify-center gap-1 mb-3">
+        <% if (page > 1) { %><button class="btn btn-ghost pagination-btn" data-page="<%= page - 1 %>"><i class="fas fa-chevron-left"></i> Previous</button><% } %>
+        <span class="d-flex align-center" style="padding:0 16px;color:var(--text-secondary);">Page <%= page %></span>
+        <% if (hasMore) { %><button class="btn btn-ghost pagination-btn" data-page="<%= page + 1 %>">Next <i class="fas fa-chevron-right"></i></button><% } %>
+    </div>
+    <% } %>
+    <% } else { %>
+    <div class="text-center text-muted" style="padding:60px;">
+        <i class="fas fa-search" style="font-size:48px;display:block;margin-bottom:16px;opacity:0.3;"></i>
+        <h3>No Plugins Found</h3>
+        <p>Try a different search term or browse popular plugins above</p>
+    </div>
+    <% } %>
+</div>
+
+<div class="card">
+    <div class="card-header"><h3>About Plugin Marketplace</h3></div>
+    <div class="card-body">
+        <div class="alert alert-info mb-3"><i class="fas fa-info-circle"></i> <span>Plugins are sourced from <strong>4 major repositories</strong>. Always verify plugin compatibility with your server version.</span></div>
+        <div class="grid-4">
+            <div><h4 class="fw-600 text-sm mb-1" style="color:var(--success);"><i class="fas fa-cube"></i> Modrinth</h4><ul class="text-xs text-muted" style="line-height:1.8;margin:0;padding-left:16px;"><li>Modern repository</li><li>Fast downloads</li><li>Open source</li></ul></div>
+            <div><h4 class="fw-600 text-sm mb-1" style="color:var(--warning);"><i class="fas fa-fire"></i> SpigotMC</h4><ul class="text-xs text-muted" style="line-height:1.8;margin:0;padding-left:16px;"><li>Largest library</li><li>Community favorites</li><li>Established</li></ul></div>
+            <div><h4 class="fw-600 text-sm mb-1" style="color:var(--info);"><i class="fas fa-paper-plane"></i> Hangar</h4><ul class="text-xs text-muted" style="line-height:1.8;margin:0;padding-left:16px;"><li>Paper plugins</li><li>Official repo</li><li>Quality assured</li></ul></div>
+            <div><h4 class="fw-600 text-sm mb-1" style="color:var(--accent);"><i class="fas fa-book"></i> BukkitDev</h4><ul class="text-xs text-muted" style="line-height:1.8;margin:0;padding-left:16px;"><li>Classic plugins</li><li>CurseForge</li><li>Legacy support</li></ul></div>
+        </div>
+    </div>
+</div>
+
+<div id="versionModal" class="modal-overlay" style="display:none;">
+    <div class="modal-box" style="max-width:600px;">
+        <div class="modal-header"><h3 id="versionModalTitle">Select Version</h3><button class="modal-close" onclick="closeVersionModal()"><i class="fas fa-times"></i></button></div>
+        <div class="modal-body" id="versionModalBody">
+            <div class="text-center" style="padding:40px;"><i class="fas fa-spinner fa-spin" style="font-size:32px;color:var(--accent);"></i><p class="mt-1 text-muted">Loading versions...</p></div>
+        </div>
+    </div>
+</div>
+
+<script>
+const serverId = <%- JSON.stringify(server.id) %>;
+let currentProvider = <%- JSON.stringify(provider || '') %>;
+let currentQuery = <%- JSON.stringify(query || '') %>;
+let currentPage = <%= page %>;
+
+document.querySelectorAll('.provider-tab').forEach(tab => {
+    tab.addEventListener('click', function() { currentProvider = this.dataset.provider; currentPage = 1; loadPlugins(); });
+});
+document.querySelectorAll('.quick-search').forEach(btn => {
+    btn.addEventListener('click', function() { currentQuery = this.dataset.query; document.getElementById('searchInput').value = currentQuery; currentPage = 1; loadPlugins(); });
+});
+document.getElementById('searchForm').addEventListener('submit', function(e) { e.preventDefault(); currentQuery = document.getElementById('searchInput').value; currentPage = 1; loadPlugins(); });
+document.querySelectorAll('.pagination-btn').forEach(btn => {
+    btn.addEventListener('click', function() { currentPage = parseInt(this.dataset.page); loadPlugins(); window.scrollTo({ top: 0, behavior: 'smooth' }); });
+});
+
+async function loadPlugins() {
+    const container = document.getElementById('pluginsContainer');
+    container.innerHTML = '<div class="text-center" style="padding:60px;"><i class="fas fa-spinner fa-spin" style="font-size:48px;color:var(--accent);"></i><p class="mt-2 text-muted">Loading plugins...</p></div>';
+    try {
+        const url = '/servers/<%= server.id %>/plugins/marketplace?q=' + encodeURIComponent(currentQuery) + '&page=' + currentPage + '&provider=' + currentProvider;
+        const response = await fetch(url);
+        const html = await response.text();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        const newContent = doc.getElementById('pluginsContainer');
+        if (newContent) { container.innerHTML = newContent.innerHTML; attachEventListeners(); }
+        window.history.pushState({}, '', url);
+        document.querySelectorAll('.provider-tab').forEach(tab => { tab.className = 'btn btn-sm ' + (tab.dataset.provider === currentProvider ? 'btn-primary' : 'btn-ghost') + ' provider-tab'; });
+    } catch (error) { console.error('Load error:', error); container.innerHTML = '<div class="alert alert-error"><i class="fas fa-exclamation-circle"></i><span>Failed to load plugins</span></div>'; }
+}
+
+async function showVersionModal(pluginName, source, projectId, resourceId) {
+    const modal = document.getElementById('versionModal');
+    const title = document.getElementById('versionModalTitle');
+    const body = document.getElementById('versionModalBody');
+    title.textContent = 'Select Version - ' + pluginName;
+    body.innerHTML = '<div class="text-center" style="padding:40px;"><i class="fas fa-spinner fa-spin" style="font-size:32px;color:var(--accent);"></i><p class="mt-1 text-muted">Loading versions...</p></div>';
+    modal.style.display = 'flex';
+    try {
+        const params = new URLSearchParams({ source, projectId, resourceId });
+        const response = await fetch('/servers/<%= server.id %>/plugins/marketplace/versions?' + params.toString());
+        const data = await response.json();
+        if (data.versions && data.versions.length > 0) {
+            body.innerHTML = '<div style="max-height:400px;overflow-y:auto;">' + data.versions.map(v => '<div class="d-flex justify-between align-center" style="padding:12px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.2s;" onmouseover="this.style.background=\'var(--bg-tertiary)\'" onmouseout="this.style.background=\'transparent\'" onclick="installPluginVersion(\'' + pluginName.replace(/'/g, "\\'") + '\',\'' + source + '\',\'' + projectId + '\',\'' + resourceId + '\',\'' + v.id + '\',\'' + (v.versionNumber || v.name || '').replace(/'/g, "\\'") + '\')"><div><div class="fw-600 text-sm">' + (v.versionNumber || v.name) + '</div>' + (v.gameVersions && v.gameVersions.length > 0 ? '<div class="text-xs text-muted">MC: ' + v.gameVersions.slice(0, 3).join(', ') + '</div>' : '') + '</div><div class="text-xs text-muted text-right">' + (v.downloads ? '<div><i class="fas fa-download"></i> ' + v.downloads.toLocaleString() + '</div>' : '') + (v.datePublished ? '<div>' + new Date(v.datePublished).toLocaleDateString() + '</div>' : '') + '</div></div>').join('') + '</div>';
+        } else { body.innerHTML = '<div class="alert alert-warning"><i class="fas fa-exclamation-triangle"></i><span>No versions available</span></div>'; }
+    } catch (error) { console.error('Version fetch error:', error); body.innerHTML = '<div class="alert alert-error"><i class="fas fa-exclamation-circle"></i><span>Failed to load versions</span></div>'; }
+}
+function closeVersionModal() { document.getElementById('versionModal').style.display = 'none'; }
+
+async function installPluginVersion(pluginName, source, projectId, resourceId, versionId, versionNumber) { closeVersionModal(); await installPlugin(pluginName, source, projectId, resourceId, versionId, versionNumber); }
+
+async function installPlugin(pluginName, source, projectId, resourceId, versionId, versionNumber) {
+    showToast('Installing ' + pluginName + (versionNumber ? ' (' + versionNumber + ')' : '') + '...', 'info');
+    try {
+        const response = await fetch('/servers/<%= server.id %>/plugins/marketplace/install', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pluginName, source, projectId, resourceId, versionId, fileId: versionId }) });
+        const data = await response.json();
+        if (response.ok && data.success) showToast(data.message || pluginName + ' installed successfully!', 'success');
+        else throw new Error(data.error || 'Installation failed');
+    } catch (error) { console.error(error); showToast(error.message || 'Failed to install plugin', 'error'); }
+}
+
+function attachEventListeners() {
+    document.querySelectorAll('.install-plugin-btn, .card-footer .btn-primary').forEach(btn => {
+        btn.addEventListener('click', function() { installPlugin(this.dataset.pluginName, this.dataset.source, this.dataset.projectId, this.dataset.resourceId); });
+    });
+    document.querySelectorAll('.select-version-btn').forEach(btn => {
+        btn.addEventListener('click', function() { showVersionModal(this.dataset.pluginName, this.dataset.source, this.dataset.projectId, this.dataset.resourceId); });
+    });
+    document.querySelectorAll('.pagination-btn').forEach(btn => {
+        btn.addEventListener('click', function() { currentPage = parseInt(this.dataset.page); loadPlugins(); window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    });
+}
+attachEventListeners();
+
+document.getElementById('versionModal').addEventListener('click', function(e) { if (e.target === this) closeVersionModal(); });
+</script>
+
+<%- include('../partials/footer') %>

@@ -1,0 +1,212 @@
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    initializeNotifications();
+    setupAutoRefresh();
+});
+
+function initializeNotifications() {
+    document.querySelectorAll('.notification-item.unread').forEach(function(item) {
+        item.addEventListener('click', function(e) {
+            if (e.target.closest('.notification-content a') || e.target.closest('button')) return;
+            var notificationId = this.dataset.id;
+            markAsRead(notificationId);
+        });
+    });
+}
+
+async function markAsRead(notificationId) {
+    try {
+        var response = await fetch('/notifications/' + notificationId + '/read', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+        var result = await response.json();
+        if (result.success) {
+            var notificationItem = document.querySelector('[data-id="' + notificationId + '"]');
+            if (notificationItem) {
+                notificationItem.classList.remove('unread');
+                var markReadBtn = notificationItem.querySelector('button[title="Mark as read"]');
+                if (markReadBtn) markReadBtn.remove();
+            }
+            updateUnreadCount();
+            showToast('Notification marked as read', 'success');
+        } else {
+            showToast(result.error || 'Failed to mark notification as read', 'error');
+        }
+    } catch (error) {
+        console.error('Mark as read error:', error);
+        showToast('An error occurred while marking notification as read', 'error');
+    }
+}
+
+async function markAllAsRead() {
+    if (!confirm('Are you sure you want to mark all notifications as read?')) return;
+    try {
+        showLoading('Marking all notifications as read...');
+        var response = await fetch('/notifications/mark-all-read', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ category: getCurrentCategory() }) });
+        var result = await response.json();
+        if (result.success) {
+            document.querySelectorAll('.notification-item.unread').forEach(function(item) {
+                item.classList.remove('unread');
+                var markReadBtn = item.querySelector('button[title="Mark as read"]');
+                if (markReadBtn) markReadBtn.remove();
+            });
+            updateUnreadCount();
+            showToast('All notifications marked as read', 'success');
+        } else {
+            showToast(result.error || 'Failed to mark all notifications as read', 'error');
+        }
+    } catch (error) {
+        console.error('Mark all as read error:', error);
+        showToast('An error occurred while marking notifications as read', 'error');
+    } finally { hideLoading(); }
+}
+
+async function clearAllNotifications() {
+    if (!confirm('Are you sure you want to delete all notifications? This action cannot be undone.')) return;
+    try {
+        showLoading('Clearing all notifications...');
+        var response = await fetch('/notifications/clear-all', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ category: getCurrentCategory() }) });
+        var result = await response.json();
+        if (result.success) { window.location.reload(); }
+        else { showToast(result.error || 'Failed to clear notifications', 'error'); }
+    } catch (error) {
+        console.error('Clear all notifications error:', error);
+        showToast('An error occurred while clearing notifications', 'error');
+    } finally { hideLoading(); }
+}
+
+async function deleteNotification(notificationId) {
+    if (!confirm('Are you sure you want to delete this notification?')) return;
+    try {
+        var response = await fetch('/notifications/' + notificationId, { method: 'DELETE' });
+        var result = await response.json();
+        if (result.success) {
+            var notificationItem = document.querySelector('[data-id="' + notificationId + '"]');
+            if (notificationItem) {
+                notificationItem.style.opacity = '0';
+                notificationItem.style.transform = 'translateX(-100%)';
+                setTimeout(function() {
+                    notificationItem.remove();
+                    var remaining = document.querySelectorAll('.notification-item');
+                    if (remaining.length === 0) showEmptyState();
+                }, 300);
+            }
+            updateUnreadCount();
+            showToast('Notification deleted', 'success');
+        } else {
+            showToast(result.error || 'Failed to delete notification', 'error');
+        }
+    } catch (error) {
+        console.error('Delete notification error:', error);
+        showToast('An error occurred while deleting notification', 'error');
+    }
+}
+
+function applyFilters() {
+    var filter = document.getElementById('filterSelect').value;
+    var category = document.getElementById('categorySelect').value;
+    var url = new URL(window.location);
+    url.searchParams.set('filter', filter);
+    url.searchParams.set('category', category);
+    url.searchParams.set('page', '1');
+    window.location.href = url.toString();
+}
+
+async function refreshNotifications() {
+    try {
+        showLoading('Refreshing notifications...');
+        var filter = getCurrentFilter();
+        var category = getCurrentCategory();
+        var page = getCurrentPage();
+        var response = await fetch('/notifications/api?filter=' + filter + '&category=' + category + '&page=' + page);
+        var result = await response.json();
+        if (result.success) {
+            updateNotificationsList(result.notifications);
+            updateUnreadCountValue(result.unreadCount);
+            showToast('Notifications refreshed', 'success');
+        } else {
+            showToast(result.error || 'Failed to refresh notifications', 'error');
+        }
+    } catch (error) {
+        console.error('Refresh notifications error:', error);
+        showToast('An error occurred while refreshing notifications', 'error');
+    } finally { hideLoading(); }
+}
+
+function updateNotificationsList(notifications) {
+    var notificationsList = document.getElementById('notificationsList');
+    if (notifications.length === 0) { showEmptyState(); return; }
+    notificationsList.innerHTML = notifications.map(function(notification) {
+        var markReadBtn = !notification.is_read ? '<button class="btn btn-sm btn-ghost btn-icon" onclick="markAsRead(\'' + notification.id + '\')" title="Mark as read"><i class="fas fa-check"></i></button>' : '';
+        var actionHtml = (notification.action_url && notification.action_text) ? '<a href="' + notification.action_url + '" class="btn btn-sm btn-primary">' + notification.action_text + '</a>' : '';
+        return '<div class="notification-item ' + (notification.is_read ? '' : 'unread') + '" data-id="' + notification.id + '" data-category="' + notification.category + '" data-type="' + notification.type + '"><div class="notification-icon"><i class="fas fa-' + (notification.icon || getNotificationIcon(notification.type, notification.category)) + '"></i></div><div class="notification-content"><div class="d-flex justify-between align-center" style="margin-bottom:8px;gap:12px"><div class="fw-600" style="color:var(--text-primary);font-size:15px">' + notification.title + '</div><div class="d-flex align-center gap-2 flex-shrink-0"><span class="badge badge-' + getCategoryColor(notification.category) + '">' + notification.category + '</span><span class="text-xs text-muted" style="white-space:nowrap" title="' + new Date(notification.created_at).toLocaleString() + '">' + formatTimeAgo(notification.created_at) + '</span></div></div><div class="text-sm text-muted" style="line-height:1.5;margin-bottom:12px">' + notification.message + '</div>' + actionHtml + '</div><div class="d-flex flex-column gap-2 flex-shrink-0">' + markReadBtn + '<button class="btn btn-sm btn-ghost btn-icon" onclick="deleteNotification(\'' + notification.id + '\')" title="Delete"><i class="fas fa-trash"></i></button></div></div>';
+    }).join('');
+    initializeNotifications();
+}
+
+function showEmptyState() {
+    var notificationsList = document.getElementById('notificationsList');
+    notificationsList.innerHTML = '<div class="text-center" style="padding:60px 20px"><div style="font-size:64px;margin-bottom:20px;opacity:0.5"><i class="fas fa-bell-slash"></i></div><div class="fw-600" style="color:var(--text-secondary);margin-bottom:8px">No notifications found</div><div class="text-sm text-muted">You\'re all caught up! New notifications will appear here.</div></div>';
+}
+
+async function updateUnreadCount() {
+    try {
+        var response = await fetch('/notifications/api?limit=1');
+        var result = await response.json();
+        if (result.success) updateUnreadCountValue(result.unreadCount);
+    } catch (error) { console.error('Update unread count error:', error); }
+}
+
+function updateUnreadCountValue(count) {
+    var titleBadge = document.querySelector('.page-title .badge');
+    if (count > 0) {
+        if (titleBadge) { titleBadge.textContent = count; }
+        else {
+            var title = document.querySelector('.page-title');
+            if (title) title.innerHTML += ' <span class="badge badge-info">' + count + '</span>';
+        }
+    } else if (titleBadge) { titleBadge.remove(); }
+    var unreadStatValue = document.querySelector('.stat-icon.warning');
+    if (unreadStatValue) {
+        var statVal = unreadStatValue.parentElement.querySelector('.stat-value');
+        if (statVal) statVal.textContent = count;
+    }
+    var sidebarBadge = document.querySelector('.sidebar .nav-item[href*="notifications"] .badge');
+    if (count > 0) { if (sidebarBadge) { sidebarBadge.textContent = count; } }
+    else if (sidebarBadge) { sidebarBadge.remove(); }
+}
+
+function setupAutoRefresh() {
+    setInterval(async function() {
+        try {
+            var response = await fetch('/notifications/api?limit=1');
+            var result = await response.json();
+            if (result.success) updateUnreadCountValue(result.unreadCount);
+        } catch (error) { console.error('Auto-refresh error:', error); }
+    }, 30000);
+}
+
+function getCurrentFilter() { return new URLSearchParams(window.location.search).get('filter') || 'all'; }
+function getCurrentCategory() { return new URLSearchParams(window.location.search).get('category') || 'all'; }
+function getCurrentPage() { return new URLSearchParams(window.location.search).get('page') || '1'; }
+
+function getNotificationIcon(type, category) {
+    var icons = { success: 'check-circle', error: 'exclamation-circle', warning: 'exclamation-triangle', info: 'info-circle', system: 'cog' };
+    var categoryIcons = { system: 'cog', account: 'user', server: 'server', security: 'shield-alt', maintenance: 'tools' };
+    return categoryIcons[category] || icons[type] || 'bell';
+}
+
+function getCategoryColor(category) {
+    var colors = { system: 'info', account: 'info', server: 'success', security: 'warning', maintenance: 'warning', general: 'info' };
+    return colors[category] || 'info';
+}
+
+function formatTimeAgo(dateString) {
+    var date = new Date(dateString);
+    var now = new Date();
+    var diff = now - date;
+    if (diff < 60000) return 'Just now';
+    if (diff < 3600000) return Math.floor(diff / 60000) + 'm ago';
+    if (diff < 86400000) return Math.floor(diff / 3600000) + 'h ago';
+    if (diff < 604800000) return Math.floor(diff / 86400000) + 'd ago';
+    return date.toLocaleDateString();
+}
+</script>

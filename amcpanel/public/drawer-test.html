@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Drawer Button Test — AMC Panel</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', sans-serif; background: #0d0f1a; color: #e8eaf6; overflow-x: hidden; }
+
+:root {
+  --bg-elevated: #151728;
+  --bg-secondary: #111323;
+  --bg-tertiary: #0e0f20;
+  --border: rgba(255,255,255,0.08);
+  --border-strong: rgba(255,255,255,0.14);
+  --text-primary: #e8eaf6;
+  --text-muted: #5a5e80;
+  --accent: #6366f1;
+  --accent-grad: linear-gradient(135deg,#6366f1 0%,#8b5cf6 100%);
+  --danger: #ef4444;
+  --success: #22c55e;
+  --r-md: 10px;
+  --speed-4: .35s;
+}
+
+/* ================================================================
+   PAGE WRAP — simulates the real app layout INCLUDING the animation
+   that caused the bug (transform: translateY)
+   ================================================================ */
+.page-wrap {
+  padding: 30px 34px 44px;
+  /* This animation is what CAUSED the bug originally.
+     A CSS transform on a parent traps position:fixed children. */
+  animation: pageEnter 0.35s ease both;
+}
+@keyframes pageEnter {
+  /* ORIGINAL BUGGY version — transform creates a containing block: */
+  /* from { opacity: 0; transform: translateY(14px); } */
+  /* to   { opacity: 1; transform: none; } */
+
+  /* FIXED version — opacity only, no containing block: */
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ================================================================
+   DRAWER BACKDROP
+   ================================================================ */
+.drawer-bg {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(6px);
+  z-index: 900;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.22s ease;
+}
+.drawer-bg.open { opacity: 1; pointer-events: auto; }
+
+/* ================================================================
+   DRAWER — CSS Grid layout (THE FIX)
+   grid-template-rows: auto 1fr auto
+     Row 1: header   → auto height
+     Row 2: body     → fills remaining space (scrollable)
+     Row 3: footer   → auto height, ALWAYS at bottom
+   ================================================================ */
+.drawer {
+  position: fixed;
+  top: 0; right: 0;
+  width: 440px; max-width: 94vw;
+  height: 100vh;
+  height: 100dvh;           /* mobile browser chrome awareness */
+  background: var(--bg-elevated);
+  border-left: 1px solid var(--border-strong);
+  z-index: 901;
+  transform: translateX(105%);
+  transition: transform var(--speed-4) cubic-bezier(.25,.46,.45,.94);
+  display: grid;
+  grid-template-rows: auto 1fr auto;   /* KEY: 3-row grid */
+  overflow: hidden;
+  box-shadow: 0 25px 60px rgba(0,0,0,.55);
+}
+.drawer.open { transform: translateX(0); }
+
+/* Row 1 — header */
+.drawer-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-secondary);
+}
+.drawer-hl { display: flex; align-items: center; gap: 13px; }
+.drawer-ico {
+  width: 40px; height: 40px; border-radius: var(--r-md);
+  background: var(--accent-grad);
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 15px; flex-shrink: 0;
+  box-shadow: 0 4px 18px rgba(99,102,241,.35);
+}
+.drawer-ttl { font-size: 15px; font-weight: 700; color: var(--text-primary); }
+.drawer-sub { font-size: 11.5px; color: var(--text-muted); }
+.drawer-x {
+  background: none; border: none; color: var(--text-primary); cursor: pointer;
+  width: 34px; height: 34px; border-radius: 8px; font-size: 14px;
+  display: flex; align-items: center; justify-content: center; transition: all .2s;
+}
+.drawer-x:hover { background: rgba(239,68,68,.15); color: var(--danger); }
+
+/* Row 2 — scrollable body */
+.drawer-body {
+  overflow-y: auto;
+  padding: 22px;
+  min-height: 0;        /* required for grid/flex scroll children */
+}
+
+/* Row 3 — footer (always visible) */
+.drawer-footer {
+  display: flex; gap: 10px;
+  padding: 16px 22px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-secondary);
+}
+.drawer-footer .btn { flex: 1; }
+
+/* ================================================================
+   FORM ELEMENTS
+   ================================================================ */
+.form-group { margin-bottom: 16px; }
+.form-label { font-size: 13px; font-weight: 600; display: block; margin-bottom: 6px; color: var(--text-primary); }
+.form-control {
+  width: 100%; padding: 9px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: rgba(255,255,255,0.04);
+  color: var(--text-primary); font-size: 13px; font-family: inherit;
+  outline: none; transition: border-color .2s;
+}
+.form-control:focus { border-color: var(--accent); }
+textarea.form-control { resize: vertical; min-height: 70px; }
+.form-hint { font-size: 11px; color: var(--text-muted); margin-top: 5px; }
+.d-flex { display: flex; }
+.gap-1 { gap: 8px; }
+.flex-1 { flex: 1; }
+
+/* ================================================================
+   BUTTONS
+   ================================================================ */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  padding: 10px 20px; border-radius: 8px;
+  font-size: 13px; font-weight: 600; font-family: inherit;
+  border: none; cursor: pointer; transition: all .2s;
+}
+.btn-primary { background: var(--accent-grad); color: #fff; }
+.btn-primary:hover { opacity: 0.85; transform: translateY(-1px); }
+.btn-ghost {
+  background: rgba(255,255,255,0.06); color: var(--text-primary);
+  border: 1px solid var(--border-strong);
+}
+.btn-ghost:hover { background: rgba(255,255,255,0.1); }
+.btn-success { background: linear-gradient(135deg,#16a34a,#22c55e); color: #fff; }
+.btn-danger  { background: linear-gradient(135deg,#dc2626,#ef4444); color: #fff; }
+
+/* ================================================================
+   TEST PAGE UI
+   ================================================================ */
+.test-header {
+  text-align: center; padding: 60px 30px 30px;
+}
+.test-header h1 { font-size: 24px; margin-bottom: 8px; }
+.test-header p  { color: var(--text-muted); font-size: 14px; margin-bottom: 30px; }
+.test-buttons { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+
+.result-panel {
+  max-width: 600px; margin: 30px auto; padding: 20px 28px;
+  background: var(--bg-elevated); border: 1px solid var(--border-strong);
+  border-radius: 14px;
+}
+.result-panel h3 { font-size: 14px; margin-bottom: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .5px; }
+.result-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13px;
+}
+.result-item:last-child { border-bottom: none; }
+.badge { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+.badge-ok  { background: rgba(34,197,94,.15); color: #22c55e; border: 1px solid rgba(34,197,94,.3); }
+.badge-bad { background: rgba(239,68,68,.15);  color: #ef4444;  border: 1px solid rgba(239,68,68,.3); }
+</style>
+</head>
+<body>
+
+<!-- Simulated page-wrap (with the fixed animation — no transform) -->
+<div class="page-wrap">
+
+<div class="test-header">
+  <h1>🧪 Drawer Footer Button — Test Suite</h1>
+  <p>Opens the exact same drawer structure used in <strong>nodes.ejs</strong> to verify the Create Node button is visible.</p>
+  <div class="test-buttons">
+    <button class="btn btn-primary" onclick="openLocalNode()">
+      🖥 Open Local Node Form
+    </button>
+    <button class="btn btn-ghost" onclick="openRemoteNode()">
+      🌐 Open Remote Node Form
+    </button>
+    <button class="btn btn-success" onclick="runAutoTest()">
+      ▶ Run Automated Test
+    </button>
+  </div>
+</div>
+
+<div class="result-panel" id="resultPanel" style="display:none">
+  <h3>Test Results</h3>
+  <div id="resultList"></div>
+</div>
+
+</div><!-- end .page-wrap -->
+
+<!-- ================================================================
+     DRAWER — placed here initially, then JS moves it to <body>
+     ================================================================ -->
+<div class="drawer-bg" id="nodeDrawerBg" onclick="closeNodeDrawer()"></div>
+<div class="drawer" id="nodeDrawer">
+  <div class="drawer-header">
+    <div class="drawer-hl">
+      <div class="drawer-ico">🖥</div>
+      <div>
+        <div class="drawer-ttl" id="nodeDrawerTitle">Add Node</div>
+        <div class="drawer-sub" id="nodeDrawerSub">Configure a new panel node</div>
+      </div>
+    </div>
+    <button class="drawer-x" onclick="closeNodeDrawer()">✕</button>
+  </div>
+
+  <div class="drawer-body">
+    <form id="nodeForm">
+      <input type="hidden" id="nodeId" value="">
+      <input type="hidden" id="nodeMode" value="local">
+
+      <div class="form-group">
+        <label class="form-label">Node Name *</label>
+        <input type="text" id="nodeName" class="form-control" placeholder="e.g. US-East-1">
+        <div class="form-hint">Unique identifier for this node</div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Description</label>
+        <textarea id="nodeDescription" class="form-control" rows="2" placeholder="Optional description"></textarea>
+      </div>
+
+      <div id="remoteFields" style="display:none">
+        <div class="d-flex gap-1">
+          <div class="form-group flex-1">
+            <label class="form-label">IP Address *</label>
+            <input type="text" id="nodeIp" class="form-control" placeholder="Public IP of remote server">
+          </div>
+          <div class="form-group" style="width:120px">
+            <label class="form-label">Port</label>
+            <input type="number" id="nodePort" class="form-control" value="8080">
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Location</label>
+        <input type="text" id="nodeLocation" class="form-control" placeholder="e.g. New York, USA">
+      </div>
+
+      <div class="d-flex gap-1">
+        <div class="form-group flex-1">
+          <label class="form-label">RAM (MB)</label>
+          <input type="number" id="nodeRam" class="form-control" value="16384">
+        </div>
+        <div class="form-group flex-1">
+          <label class="form-label">CPU Cores</label>
+          <input type="number" id="nodeCpu" class="form-control" value="4">
+        </div>
+        <div class="form-group flex-1">
+          <label class="form-label">Disk (MB)</label>
+          <input type="number" id="nodeDisk" class="form-control" value="102400">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">⬆ Upload Limit (MB)</label>
+        <input type="number" id="nodeUploadLimit" class="form-control" value="0" min="0">
+        <div class="form-hint">Set to <strong>0</strong> for unlimited. (e.g. 10240 = 10GB)</div>
+      </div>
+    </form>
+  </div>
+
+  <!-- THE BUTTON THAT WAS MISSING -->
+  <div class="drawer-footer">
+    <button class="btn btn-ghost" onclick="closeNodeDrawer()">✕ Cancel</button>
+    <button class="btn btn-primary" id="nodeSaveBtn" onclick="saveNode()">
+      ✓ Create Local Node
+    </button>
+  </div>
+</div>
+
+<script>
+// ================================================================
+// Move drawer to body — escape any transform containing block
+// ================================================================
+(function() {
+    var bg     = document.getElementById('nodeDrawerBg');
+    var drawer = document.getElementById('nodeDrawer');
+    if (bg)     document.body.appendChild(bg);
+    if (drawer) document.body.appendChild(drawer);
+})();
+
+// ================================================================
+// Drawer open/close helpers
+// ================================================================
+function openLocalNode() {
+    document.getElementById('nodeDrawerTitle').textContent = 'Add Local Node';
+    document.getElementById('nodeDrawerSub').textContent   = 'This machine (localhost)';
+    document.getElementById('nodeMode').value  = 'local';
+    document.getElementById('nodeName').value  = '';
+    document.getElementById('nodeDescription').value = '';
+    document.getElementById('nodeLocation').value = '';
+    document.getElementById('nodeRam').value   = '16384';
+    document.getElementById('nodeCpu').value   = '4';
+    document.getElementById('nodeDisk').value  = '102400';
+    document.getElementById('remoteFields').style.display = 'none';
+    document.getElementById('nodeSaveBtn').textContent = '✓ Create Local Node';
+    document.getElementById('nodeDrawerBg').classList.add('open');
+    document.getElementById('nodeDrawer').classList.add('open');
+    document.body.style.overflow = 'hidden';
+    setTimeout(function() { document.getElementById('nodeName').focus(); }, 350);
+}
+
+function openRemoteNode() {
+    document.getElementById('nodeDrawerTitle').textContent = 'Add Remote Node';
+    document.getElementById('nodeDrawerSub').textContent   = 'Configure connection to remote server';
+    document.getElementById('nodeMode').value  = 'remote';
+    document.getElementById('nodeName').value  = '';
+    document.getElementById('nodeDescription').value = '';
+    document.getElementById('nodeIp').value    = '';
+    document.getElementById('nodePort').value  = '8080';
+    document.getElementById('nodeLocation').value = '';
+    document.getElementById('nodeRam').value   = '16384';
+    document.getElementById('nodeCpu').value   = '4';
+    document.getElementById('nodeDisk').value  = '102400';
+    document.getElementById('remoteFields').style.display = 'block';
+    document.getElementById('nodeSaveBtn').textContent = '✓ Create Remote Node';
+    document.getElementById('nodeDrawerBg').classList.add('open');
+    document.getElementById('nodeDrawer').classList.add('open');
+    document.body.style.overflow = 'hidden';
+    setTimeout(function() { document.getElementById('nodeName').focus(); }, 350);
+}
+
+function closeNodeDrawer() {
+    document.getElementById('nodeDrawerBg').classList.remove('open');
+    document.getElementById('nodeDrawer').classList.remove('open');
+    document.body.style.overflow = '';
+}
+
+function saveNode() {
+    var name = document.getElementById('nodeName').value.trim();
+    if (!name) { alert('Node name is required!'); return; }
+    alert('✅ SUCCESS!\nCreate Node button works!\nNode name: ' + name);
+    closeNodeDrawer();
+}
+
+document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeNodeDrawer(); });
+
+// ================================================================
+// Automated test suite
+// ================================================================
+function runAutoTest() {
+    var results = [];
+
+    // Test 1: drawer element exists in DOM
+    var drawer = document.getElementById('nodeDrawer');
+    results.push({ label: 'Drawer element exists', ok: !!drawer });
+
+    // Test 2: drawer is a direct child of body (moved by JS)
+    results.push({ label: 'Drawer is child of <body> (not page-wrap)', ok: drawer && drawer.parentElement === document.body });
+
+    // Test 3: drawer uses CSS grid
+    if (drawer) {
+        var cs = window.getComputedStyle(drawer);
+        results.push({ label: 'Drawer display = grid', ok: cs.display === 'grid' });
+        results.push({ label: 'Drawer overflow = hidden (not clip)', ok: cs.overflow === 'hidden' });
+    }
+
+    // Test 4: footer exists and is visible
+    var footer = drawer ? drawer.querySelector('.drawer-footer') : null;
+    results.push({ label: 'drawer-footer element exists', ok: !!footer });
+    if (footer) {
+        var fcs = window.getComputedStyle(footer);
+        results.push({ label: 'Footer has no position:absolute', ok: fcs.position !== 'absolute' });
+        results.push({ label: 'Footer display = flex', ok: fcs.display === 'flex' });
+    }
+
+    // Test 5: save button exists and is not hidden
+    var btn = document.getElementById('nodeSaveBtn');
+    results.push({ label: 'nodeSaveBtn exists', ok: !!btn });
+    if (btn) {
+        var bcs = window.getComputedStyle(btn);
+        results.push({ label: 'Button not hidden (display != none)', ok: bcs.display !== 'none' });
+        results.push({ label: 'Button not invisible (visibility != hidden)', ok: bcs.visibility !== 'hidden' });
+        results.push({ label: 'Button fully opaque (opacity = 1)', ok: parseFloat(bcs.opacity) === 1 });
+    }
+
+    // Test 6: open the drawer and check button is in viewport
+    openLocalNode();
+    setTimeout(function() {
+        if (btn) {
+            var rect = btn.getBoundingClientRect();
+            var inViewport = rect.top >= 0 && rect.bottom <= window.innerHeight && rect.left >= 0 && rect.right <= window.innerWidth;
+            results.push({ label: 'Create Node button is within viewport bounds', ok: inViewport });
+            results.push({ label: 'Button height > 0 (rendered)', ok: rect.height > 0 });
+        }
+
+        closeNodeDrawer();
+        showResults(results);
+    }, 500);
+}
+
+function showResults(results) {
+    var panel = document.getElementById('resultPanel');
+    var list  = document.getElementById('resultList');
+    var allOk = results.every(function(r) { return r.ok; });
+
+    list.innerHTML = results.map(function(r) {
+        return '<div class="result-item">' +
+            '<span class="badge ' + (r.ok ? 'badge-ok' : 'badge-bad') + '">' + (r.ok ? '✓ PASS' : '✗ FAIL') + '</span>' +
+            '<span>' + r.label + '</span>' +
+        '</div>';
+    }).join('');
+
+    panel.style.display = 'block';
+    panel.style.borderColor = allOk ? 'rgba(34,197,94,.4)' : 'rgba(239,68,68,.4)';
+    panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+</script>
+</body>
+</html>
