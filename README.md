@@ -7,7 +7,8 @@
 
 # Installations Cmds
 ```
-apt update
+sudo su
+apt update && apt upgrade
 apt install git
 apt install unzip
 apt install docker.io
