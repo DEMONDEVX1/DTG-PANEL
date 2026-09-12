@@ -17,7 +17,7 @@ apt-get install nodejs git
 ```
 # Clone Repo
 ```
-git clone https://github.com/DemonDevxx/AMC-PANEL
+git clone https://github.com/DemonDevxx/DTG-PANEL
 ```
 # Unzip & cd directory
 ```
