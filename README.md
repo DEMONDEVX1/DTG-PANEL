@@ -40,8 +40,7 @@ Url - localhost:3000
 ```
 # How to Start Panel
 ```
-npm install
-Type nano .env And Change The Trust Proxy To True
+npm install && npm update && apt upgrade
 npm start
 ```
 
