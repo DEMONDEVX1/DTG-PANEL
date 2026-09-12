@@ -21,7 +21,7 @@ git clone https://github.com/DemonDevxx/DTG-PANEL
 ```
 # Unzip & cd directory
 ```
-cd AMC-PANEL
+cd DTG-PANEL
 unzip amcpanel.zip
 cd amcpanel
 ```
