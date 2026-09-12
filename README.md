@@ -40,7 +40,7 @@ Url - localhost:3000
 ```
 # How to Start Panel
 ```
-npm install && npm update && apt upgrade
+npm install && npm update && npm upgrade
 npm start
 ```
 
