@@ -52,6 +52,12 @@ cd DTG-PANEL
 unzip dtgpanel.zip
 cd dtgpanel
 ```
+# How To Setup Domain
+```
+bash <(curl -s https://ptero.jishnu.site) 
+
+5 than 1 
+```
 # Add  Domain
 ```
 Open https://dash.cloudflare.com
