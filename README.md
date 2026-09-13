@@ -44,7 +44,7 @@ apt-get install nodejs git
 ```
 # Clone Repo
 ```
-git clone https://github.com/DemonDevxx/DTG-PANEL
+git clone https://github.com/DEMONDEVX1/DTG-PANEL
 ```
 # Unzip & cd directory
 ```
