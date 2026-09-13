@@ -1,0 +1,34 @@
+<%- include('partials/header') %>
+
+<style>
+.error-wrap{display:flex;align-items:center;justify-content:center;min-height:60vh;padding:40px 20px}
+.error-inner{text-align:center;max-width:480px}
+.error-icon{font-size:64px;color:var(--danger);margin-bottom:16px}
+.error-code{font-size:48px;font-weight:700;color:var(--text-primary);margin-bottom:8px;line-height:1.1}
+.error-msg{font-size:16px;color:var(--text-secondary);margin-bottom:24px}
+.error-stack{background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--r-lg);padding:16px;margin-bottom:24px;text-align:left}
+.error-stack h3{font-size:11px;font-weight:700;color:var(--text-tertiary);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px}
+.error-stack pre{font-size:11px;color:var(--text-secondary);overflow-x:auto;white-space:pre-wrap;word-break:break-word;line-height:1.5}
+</style>
+
+<div class="error-wrap">
+    <div class="error-inner">
+        <div class="error-icon"><i class="fas fa-exclamation-triangle"></i></div>
+        <div class="error-code"><%= status || 500 %></div>
+        <div class="error-msg"><%= message || 'An error occurred' %></div>
+
+        <% if (typeof error !== 'undefined' && error && process.env.NODE_ENV === 'development') { %>
+        <div class="error-stack">
+            <h3>Error Details (Development Mode)</h3>
+            <pre><%= error.stack %></pre>
+        </div>
+        <% } %>
+
+        <div class="d-flex align-center justify-center gap-2">
+            <a href="/dashboard" class="btn btn-primary"><i class="fas fa-home"></i> Go to Dashboard</a>
+            <button onclick="history.back()" class="btn btn-ghost"><i class="fas fa-arrow-left"></i> Go Back</button>
+        </div>
+    </div>
+</div>
+
+<%- include('partials/footer') %>

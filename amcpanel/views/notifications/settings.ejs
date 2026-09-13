@@ -1,0 +1,379 @@
+<%- include('../partials/header') %>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">
+            <i class="fas fa-bell-slash"></i>
+            Notification Settings
+        </h1>
+        <p class="page-subtitle">Customize how and when you receive notifications</p>
+    </div>
+    <div class="page-actions">
+        <a href="/notifications" class="btn btn-ghost">
+            <i class="fas fa-arrow-left"></i>
+            Back to Notifications
+        </a>
+    </div>
+</div>
+
+<div class="d-flex gap-4" style="align-items:flex-start">
+    <div style="flex:1;min-width:0">
+        <div class="card">
+            <div class="card-header">
+                <h3><i class="fas fa-cog"></i> Notification Preferences</h3>
+            </div>
+            <div class="card-body">
+                <form id="notificationSettingsForm">
+                    <div style="margin-bottom:32px;padding-bottom:24px;border-bottom:1px solid var(--border)">
+                        <div class="fw-600 mb-3" style="color:var(--text-primary)">General Settings</div>
+
+                        <div class="form-group">
+                            <div class="form-check">
+                                <input type="checkbox" id="email_notifications" name="email_notifications"
+                                       class="form-check-input" <%= settings.email_notifications ? 'checked' : '' %>>
+                                <label for="email_notifications" class="form-check-label">
+                                    <i class="fas fa-envelope"></i>
+                                    Email Notifications
+                                </label>
+                            </div>
+                            <div class="form-hint">Receive notifications via email</div>
+                        </div>
+
+                        <div class="form-group">
+                            <div class="form-check">
+                                <input type="checkbox" id="push_notifications" name="push_notifications"
+                                       class="form-check-input" <%= settings.push_notifications ? 'checked' : '' %>>
+                                <label for="push_notifications" class="form-check-label">
+                                    <i class="fas fa-mobile-alt"></i>
+                                    Browser Push Notifications
+                                </label>
+                            </div>
+                            <div class="form-hint">Receive browser push notifications (requires permission)</div>
+                        </div>
+
+                        <div class="form-group">
+                            <div class="form-check">
+                                <input type="checkbox" id="security_notifications" name="security_notifications"
+                                       class="form-check-input" <%= settings.security_notifications ? 'checked' : '' %>>
+                                <label for="security_notifications" class="form-check-label">
+                                    <i class="fas fa-shield-alt"></i>
+                                    Security Notifications
+                                </label>
+                            </div>
+                            <div class="form-hint">Important security alerts (always recommended)</div>
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom:32px;padding-bottom:24px;border-bottom:1px solid var(--border)">
+                        <div class="fw-600 mb-3" style="color:var(--text-primary)">Delivery Settings</div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="notification_frequency">Notification Frequency</label>
+                            <select id="notification_frequency" name="notification_frequency" class="form-control">
+                                <option value="immediate" <%= settings.notification_frequency === 'immediate' ? 'selected' : '' %>>Immediate</option>
+                                <option value="hourly" <%= settings.notification_frequency === 'hourly' ? 'selected' : '' %>>Hourly Digest</option>
+                                <option value="daily" <%= settings.notification_frequency === 'daily' ? 'selected' : '' %>>Daily Digest</option>
+                                <option value="weekly" <%= settings.notification_frequency === 'weekly' ? 'selected' : '' %>>Weekly Digest</option>
+                            </select>
+                            <div class="form-hint">How often you want to receive notification emails</div>
+                        </div>
+
+                        <div class="d-flex gap-3">
+                            <div class="form-group flex-1">
+                                <label class="form-label" for="quiet_hours_start">Quiet Hours Start</label>
+                                <input type="time" id="quiet_hours_start" name="quiet_hours_start"
+                                       class="form-control" value="<%= settings.quiet_hours_start || '' %>">
+                            </div>
+                            <div class="form-group flex-1">
+                                <label class="form-label" for="quiet_hours_end">Quiet Hours End</label>
+                                <input type="time" id="quiet_hours_end" name="quiet_hours_end"
+                                       class="form-control" value="<%= settings.quiet_hours_end || '' %>">
+                            </div>
+                        </div>
+                        <div class="form-hint">No notifications will be sent during quiet hours (except security alerts)</div>
+                    </div>
+
+                    <div>
+                        <div class="fw-600 mb-2" style="color:var(--text-primary)">Category Preferences</div>
+                        <div class="text-sm text-muted mb-3">Choose which types of notifications you want to receive</div>
+
+                        <div class="d-flex flex-column gap-3">
+                            <div class="category-pref-item">
+                                <div class="d-flex justify-between align-center">
+                                    <div class="d-flex align-center gap-2">
+                                        <i class="fas fa-cog text-muted"></i>
+                                        <span class="fw-600">System</span>
+                                    </div>
+                                    <div class="form-check">
+                                        <input type="checkbox" id="category_system" name="categories[system]"
+                                               class="form-check-input" checked>
+                                        <label for="category_system" class="form-check-label">Enable</label>
+                                    </div>
+                                </div>
+                                <div class="text-xs text-muted mt-1">System updates, maintenance, and panel notifications</div>
+                            </div>
+
+                            <div class="category-pref-item">
+                                <div class="d-flex justify-between align-center">
+                                    <div class="d-flex align-center gap-2">
+                                        <i class="fas fa-user text-muted"></i>
+                                        <span class="fw-600">Account</span>
+                                    </div>
+                                    <div class="form-check">
+                                        <input type="checkbox" id="category_account" name="categories[account]"
+                                               class="form-check-input" checked>
+                                        <label for="category_account" class="form-check-label">Enable</label>
+                                    </div>
+                                </div>
+                                <div class="text-xs text-muted mt-1">Profile changes, password updates, and account activities</div>
+                            </div>
+
+                            <div class="category-pref-item">
+                                <div class="d-flex justify-between align-center">
+                                    <div class="d-flex align-center gap-2">
+                                        <i class="fas fa-server text-muted"></i>
+                                        <span class="fw-600">Server</span>
+                                    </div>
+                                    <div class="form-check">
+                                        <input type="checkbox" id="category_server" name="categories[server]"
+                                               class="form-check-input" checked>
+                                        <label for="category_server" class="form-check-label">Enable</label>
+                                    </div>
+                                </div>
+                                <div class="text-xs text-muted mt-1">Server status changes, player activities, and server events</div>
+                            </div>
+
+                            <div class="category-pref-item">
+                                <div class="d-flex justify-between align-center">
+                                    <div class="d-flex align-center gap-2">
+                                        <i class="fas fa-shield-alt text-muted"></i>
+                                        <span class="fw-600">Security</span>
+                                    </div>
+                                    <div class="form-check">
+                                        <input type="checkbox" id="category_security" name="categories[security]"
+                                               class="form-check-input" checked disabled>
+                                        <label for="category_security" class="form-check-label">Always Enabled</label>
+                                    </div>
+                                </div>
+                                <div class="text-xs text-muted mt-1">Security alerts, login attempts, and important security events</div>
+                            </div>
+
+                            <div class="category-pref-item">
+                                <div class="d-flex justify-between align-center">
+                                    <div class="d-flex align-center gap-2">
+                                        <i class="fas fa-tools text-muted"></i>
+                                        <span class="fw-600">Maintenance</span>
+                                    </div>
+                                    <div class="form-check">
+                                        <input type="checkbox" id="category_maintenance" name="categories[maintenance]"
+                                               class="form-check-input" checked>
+                                        <label for="category_maintenance" class="form-check-label">Enable</label>
+                                    </div>
+                                </div>
+                                <div class="text-xs text-muted mt-1">Scheduled maintenance, updates, and system changes</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i>
+                            Save Settings
+                        </button>
+                        <button type="button" class="btn btn-ghost" onclick="testNotification()">
+                            <i class="fas fa-bell"></i>
+                            Send Test Notification
+                        </button>
+                        <button type="button" class="btn btn-ghost" onclick="resetSettings()">
+                            <i class="fas fa-undo"></i>
+                            Reset to Defaults
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="flex-shrink-0" style="width:360px">
+        <div class="card">
+            <div class="card-header">
+                <h3><i class="fas fa-info-circle"></i> About Notifications</h3>
+            </div>
+            <div class="card-body">
+                <div style="margin-bottom:20px">
+                    <div class="fw-600 mb-2" style="font-size:15px">Notification Types</div>
+                    <div class="d-flex flex-column gap-1">
+                        <div class="d-flex align-center gap-2 text-sm text-muted"><i class="fas fa-check-circle text-success"></i> Success notifications</div>
+                        <div class="d-flex align-center gap-2 text-sm text-muted"><i class="fas fa-info-circle text-info"></i> Information updates</div>
+                        <div class="d-flex align-center gap-2 text-sm text-muted"><i class="fas fa-exclamation-triangle text-warning"></i> Warning alerts</div>
+                        <div class="d-flex align-center gap-2 text-sm text-muted"><i class="fas fa-exclamation-circle text-danger"></i> Error notifications</div>
+                        <div class="d-flex align-center gap-2 text-sm text-muted"><i class="fas fa-cog text-muted"></i> System messages</div>
+                    </div>
+                </div>
+
+                <div style="margin-bottom:20px">
+                    <div class="fw-600 mb-2" style="font-size:15px">Delivery Methods</div>
+                    <div class="d-flex flex-column gap-1">
+                        <div class="d-flex align-center gap-2 text-sm text-muted"><i class="fas fa-bell"></i> In-panel notifications</div>
+                        <div class="d-flex align-center gap-2 text-sm text-muted"><i class="fas fa-envelope"></i> Email notifications</div>
+                        <div class="d-flex align-center gap-2 text-sm text-muted"><i class="fas fa-mobile-alt"></i> Browser push notifications</div>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="fw-600 mb-2" style="font-size:15px">Privacy & Security</div>
+                    <p class="text-sm text-muted" style="line-height:1.6;margin:0">
+                        Your notification preferences are stored securely and are only used to deliver
+                        notifications according to your settings. Security notifications cannot be
+                        disabled for your account safety.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h3><i class="fas fa-mobile-alt"></i> Browser Notifications</h3>
+            </div>
+            <div class="card-body">
+                <div id="pushNotificationStatus">
+                    <div class="text-center text-muted text-sm" style="padding:10px">Checking browser support...</div>
+                </div>
+                <button id="enablePushBtn" class="btn btn-primary w-100" style="display:none" onclick="enablePushNotifications()">
+                    <i class="fas fa-bell"></i>
+                    Enable Browser Notifications
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.category-pref-item {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    padding: 16px;
+    transition: border-color 0.2s;
+}
+.category-pref-item:hover { border-color: var(--accent); }
+
+.form-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+}
+
+.loading { text-align: center; padding: 20px; color: var(--text-tertiary); }
+.loading::before {
+    content: '';
+    display: inline-block;
+    width: 16px; height: 16px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-right: 8px;
+    vertical-align: middle;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 768px) {
+    .form-actions { flex-direction: column; }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    initializePushNotifications();
+});
+
+document.getElementById('notificationSettingsForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    var formData = new FormData(this);
+    var data = Object.fromEntries(formData);
+    data.email_notifications = document.getElementById('email_notifications').checked;
+    data.push_notifications = document.getElementById('push_notifications').checked;
+    data.security_notifications = document.getElementById('security_notifications').checked;
+    data.categories = {};
+    document.querySelectorAll('input[name^="categories["]').forEach(function(input) {
+        var category = input.name.match(/categories\[(.+)\]/)[1];
+        data.categories[category] = input.checked;
+    });
+    try {
+        showLoading('Saving notification settings...');
+        var response = await fetch('/notifications/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+        var result = await response.json();
+        if (result.success) { showToast('Notification settings saved successfully!', 'success'); }
+        else { showToast(result.error || 'Failed to save notification settings', 'error'); }
+    } catch (error) {
+        console.error('Save settings error:', error);
+        showToast('An error occurred while saving settings', 'error');
+    } finally { hideLoading(); }
+});
+
+async function testNotification() {
+    try {
+        var response = await fetch('/notifications/test', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'info', title: 'Test Notification', message: 'This is a test notification from your notification settings.' }) });
+        var result = await response.json();
+        if (result.success) { showToast('Test notification sent successfully!', 'success'); }
+        else { showToast(result.error || 'Failed to send test notification', 'error'); }
+    } catch (error) {
+        console.error('Test notification error:', error);
+        showToast('An error occurred while sending test notification', 'error');
+    }
+}
+
+function resetSettings() {
+    if (!confirm('Are you sure you want to reset all notification settings to defaults?')) return;
+    document.getElementById('email_notifications').checked = true;
+    document.getElementById('push_notifications').checked = true;
+    document.getElementById('security_notifications').checked = true;
+    document.getElementById('notification_frequency').value = 'immediate';
+    document.getElementById('quiet_hours_start').value = '';
+    document.getElementById('quiet_hours_end').value = '';
+    document.querySelectorAll('input[name^="categories["]').forEach(function(input) {
+        if (input.id !== 'category_security') input.checked = true;
+    });
+    showToast('Settings reset to defaults', 'info');
+}
+
+async function initializePushNotifications() {
+    var statusDiv = document.getElementById('pushNotificationStatus');
+    var enableBtn = document.getElementById('enablePushBtn');
+    if (!('Notification' in window)) {
+        statusDiv.innerHTML = '<div class="text-center text-muted text-sm"><i class="fas fa-times-circle"></i><p>Browser notifications are not supported</p></div>';
+        return;
+    }
+    var permission = Notification.permission;
+    if (permission === 'granted') {
+        statusDiv.innerHTML = '<div class="text-center text-success text-sm"><i class="fas fa-check-circle"></i><p>Browser notifications are enabled</p></div>';
+    } else if (permission === 'denied') {
+        statusDiv.innerHTML = '<div class="text-center text-danger text-sm"><i class="fas fa-times-circle"></i><p>Browser notifications are blocked</p><small>Please enable in your browser settings</small></div>';
+    } else {
+        statusDiv.innerHTML = '<div class="text-center text-warning text-sm"><i class="fas fa-exclamation-triangle"></i><p>Browser notifications are not enabled</p></div>';
+        enableBtn.style.display = 'block';
+    }
+}
+
+async function enablePushNotifications() {
+    try {
+        var permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+            showToast('Browser notifications enabled successfully!', 'success');
+            initializePushNotifications();
+            new Notification('Notifications Enabled', { body: 'You will now receive browser notifications from this panel.', icon: '/site-icon.png' });
+        } else {
+            showToast('Browser notifications were not enabled', 'warning');
+        }
+    } catch (error) {
+        console.error('Enable push notifications error:', error);
+        showToast('Failed to enable browser notifications', 'error');
+    }
+}
+</script>
+
+<%- include('../partials/footer') %>

@@ -1,5 +1,31 @@
-# DTG-PANEL
+# DTG-PANEL v2.0
 🎮 DTG Panel is a modern Minecraft Server Management Panel built for speed, reliability, and simplicity. 🚀 Designed for server owners and hosting providers, it delivers a clean, responsive, and secure experience with high performance and an intuitive interface. ❤️ Made by AyushTheWarrior & DemonDevx/Rehan ✨
+
+## ✨ Version 2.0 Features (NEW!)
+
+### 🎟️ Referral Code System
+- Create and manage referral codes from admin panel
+- Users can claim codes to earn credits
+- Configurable credit rewards and max claim limits
+- Expiry date support
+- Transaction logging
+
+### 💳 Billing & Server Packages System
+- Create customizable server packages
+- Users purchase servers using credits only
+- Support for free and paid packages
+- Auto-renewal options
+- Credit balance tracking
+- Transaction history
+- Real-time credit deduction
+
+### 📊 User Credit Management
+- Automatic wallet creation
+- Precision credit tracking (DECIMAL 10,2)
+- Multi-transaction logging
+- Support for future payment integrations
+
+**For detailed feature information, see [IMPLEMENTATION_SUMMARY.md](./IMPLEMENTATION_SUMMARY.md)**
 
 # Hosting panel: **DTG PANEL**
 

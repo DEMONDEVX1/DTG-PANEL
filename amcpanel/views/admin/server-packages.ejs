@@ -1,0 +1,386 @@
+<%- include('../partials/header') %>
+
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2 class="mb-0">
+                    <i class="fas fa-box"></i> Server Packages Management
+                </h2>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addPackageModal">
+                    <i class="fas fa-plus"></i> New Server Package
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="packagesTable">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Package Name</th>
+                                    <th>Version</th>
+                                    <th>Software</th>
+                                    <th>RAM</th>
+                                    <th>CPU</th>
+                                    <th>Disk</th>
+                                    <th>Cost</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% packages.forEach(pkg => { %>
+                                    <tr>
+                                        <td>
+                                            <strong><%= pkg.name %></strong>
+                                            <% if (pkg.description) { %>
+                                                <br><small class="text-muted"><%= pkg.description %></small>
+                                            <% } %>
+                                        </td>
+                                        <td><code><%= pkg.version %></code></td>
+                                        <td><span class="badge bg-info"><%= pkg.software %></span></td>
+                                        <td><%= pkg.ram %>MB</td>
+                                        <td><%= pkg.cpu %> Core(s)</td>
+                                        <td><%= pkg.disk %>MB</td>
+                                        <td>
+                                            <% if (pkg.is_free) { %>
+                                                <span class="badge bg-success">FREE</span>
+                                            <% } else { %>
+                                                <span class="badge bg-warning">💰 <%= pkg.credits_cost %> Credits</span>
+                                            <% } %>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-<%= pkg.status === 'active' ? 'success' : 'danger' %>">
+                                                <%= pkg.status %>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <button class="btn btn-sm btn-info" onclick="viewPackage('<%= pkg.id %>')">
+                                                <i class="fas fa-eye"></i> View
+                                            </button>
+                                            <button class="btn btn-sm btn-warning" onclick="editPackage(<%= JSON.stringify(pkg).replace(/'/g, '&#39;') %>)">
+                                                <i class="fas fa-edit"></i> Edit
+                                            </button>
+                                            <button class="btn btn-sm btn-danger" onclick="deletePackage('<%= pkg.id %>', '<%= pkg.name %>')">
+                                                <i class="fas fa-trash"></i> Delete
+                                            </button>
+                                        </td>
+                                    </tr>
+                                <% }); %>
+                            </tbody>
+                        </table>
+                        <% if (packages.length === 0) { %>
+                            <div class="alert alert-info text-center">
+                                <i class="fas fa-info-circle"></i> No server packages yet. Create one to allow users to purchase servers!
+                            </div>
+                        <% } %>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add/Edit Package Modal -->
+<div class="modal fade" id="addPackageModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalTitle">New Server Package</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="packageForm">
+                    <input type="hidden" id="packageId">
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Package Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="name" placeholder="e.g., Starter Server" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Version <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="version" placeholder="e.g., 1.20.1" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea class="form-control" id="description" rows="2" placeholder="Optional description"></textarea>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Software <span class="text-danger">*</span></label>
+                                <select class="form-control" id="software" required>
+                                    <option value="">Select Software</option>
+                                    
+                                    <!-- Java Edition Servers -->
+                                    <optgroup label="Java Edition Servers">
+                                        <option value="Vanilla">Vanilla</option>
+                                        <option value="Paper">Paper</option>
+                                        <option value="Spigot">Spigot</option>
+                                        <option value="Purpur">Purpur</option>
+                                        <option value="Bukkit">CraftBukkit</option>
+                                        <option value="Fabric">Fabric</option>
+                                        <option value="Quilt">Quilt</option>
+                                        <option value="Forge">Forge</option>
+                                    </optgroup>
+                                    
+                                    <!-- Proxy Servers -->
+                                    <optgroup label="Proxy Servers">
+                                        <option value="Velocity">Velocity</option>
+                                        <option value="BungeeCord">BungeeCord</option>
+                                        <option value="Waterfall">Waterfall</option>
+                                    </optgroup>
+                                    
+                                    <!-- Bedrock Edition -->
+                                    <optgroup label="Bedrock Edition">
+                                        <option value="Bedrock">Bedrock Dedicated Server</option>
+                                        <option value="Nukkit">Nukkit</option>
+                                    </optgroup>
+                                    
+                                    <!-- Hybrid Servers -->
+                                    <optgroup label="Hybrid Servers (Mods + Plugins)">
+                                        <option value="Mohist">Mohist</option>
+                                        <option value="CatServer">CatServer</option>
+                                    </optgroup>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">RAM (MB) <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control" id="ram" min="512" step="512" required>
+                                    <span class="input-group-text">MB</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">CPU Cores <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" id="cpu" min="1" value="1" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Disk (MB) <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control" id="disk" min="1024" step="1024" required>
+                                    <span class="input-group-text">MB</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Max Players</label>
+                                <input type="number" class="form-control" id="max_players" min="1" value="20">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Expiry Days</label>
+                                <input type="number" class="form-control" id="expiry_days" min="1" value="30">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Pricing</label>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="pricing" id="pricingFree" value="free" onchange="togglePricing()">
+                                    <label class="form-check-label" for="pricingFree">
+                                        Free Server
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="pricing" id="pricingCredits" value="credits" checked onchange="togglePricing()">
+                                    <label class="form-check-label" for="pricingCredits">
+                                        Paid with Credits
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3" id="costDiv">
+                                <label class="form-label">Cost (Credits) <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text">💰</span>
+                                    <input type="number" class="form-control" id="credits_cost" min="0" value="100" required>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="auto_renewal">
+                                    <label class="form-check-label" for="auto_renewal">
+                                        Allow Auto-Renewal
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3" id="renewalCostDiv" style="display: none;">
+                                <label class="form-label">Renewal Cost (Credits)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">💰</span>
+                                    <input type="number" class="form-control" id="renewal_credits" min="0">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3" id="statusDiv" style="display: none;">
+                        <label class="form-label">Status</label>
+                        <select class="form-control" id="status">
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="savePackage()">Save Package</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function togglePricing() {
+    const isFree = document.getElementById('pricingFree').checked;
+    document.getElementById('costDiv').style.display = isFree ? 'none' : 'block';
+    document.getElementById('renewalCostDiv').style.display = isFree ? 'none' : 'block';
+    if (isFree) document.getElementById('credits_cost').value = '0';
+}
+
+document.getElementById('auto_renewal').addEventListener('change', function() {
+    document.getElementById('renewalCostDiv').style.display = this.checked ? 'block' : 'none';
+});
+
+function editPackage(pkg) {
+    document.getElementById('modalTitle').textContent = 'Edit Server Package';
+    document.getElementById('packageId').value = pkg.id;
+    document.getElementById('name').value = pkg.name;
+    document.getElementById('description').value = pkg.description || '';
+    document.getElementById('version').value = pkg.version;
+    document.getElementById('software').value = pkg.software;
+    document.getElementById('ram').value = pkg.ram;
+    document.getElementById('cpu').value = pkg.cpu;
+    document.getElementById('disk').value = pkg.disk;
+    document.getElementById('max_players').value = pkg.max_players;
+    document.getElementById('expiry_days').value = pkg.expiry_days;
+    document.getElementById('credits_cost').value = pkg.credits_cost;
+    document.getElementById('renewal_credits').value = pkg.renewal_credits || '';
+    document.getElementById('auto_renewal').checked = pkg.auto_renewal;
+    document.getElementById('status').value = pkg.status;
+    
+    if (pkg.is_free) {
+        document.getElementById('pricingFree').checked = true;
+    } else {
+        document.getElementById('pricingCredits').checked = true;
+    }
+    
+    togglePricing();
+    document.getElementById('statusDiv').style.display = 'block';
+    
+    new bootstrap.Modal(document.getElementById('addPackageModal')).show();
+}
+
+function savePackage() {
+    const packageId = document.getElementById('packageId').value;
+    const data = {
+        name: document.getElementById('name').value,
+        description: document.getElementById('description').value,
+        version: document.getElementById('version').value,
+        software: document.getElementById('software').value,
+        ram: document.getElementById('ram').value,
+        cpu: document.getElementById('cpu').value,
+        disk: document.getElementById('disk').value,
+        max_players: document.getElementById('max_players').value,
+        expiry_days: document.getElementById('expiry_days').value,
+        is_free: document.getElementById('pricingFree').checked,
+        credits_cost: document.getElementById('credits_cost').value,
+        auto_renewal: document.getElementById('auto_renewal').checked,
+        renewal_credits: document.getElementById('renewal_credits').value,
+        status: document.getElementById('status').value || 'active'
+    };
+
+    if (!data.name || !data.version || !data.software || !data.ram || !data.cpu || !data.disk) {
+        alert('Please fill in all required fields');
+        return;
+    }
+
+    const url = packageId ? `/admin/server-packages/${packageId}/edit` : '/admin/server-packages/create';
+
+    fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+    })
+    .then(r => r.json())
+    .then(result => {
+        if (result.success) {
+            alert('Package saved successfully!');
+            location.reload();
+        } else {
+            alert('Error: ' + result.message);
+        }
+    })
+    .catch(err => alert('Error: ' + err.message));
+}
+
+function deletePackage(id, name) {
+    if (!confirm(`Delete server package "${name}"? This action cannot be undone.`)) return;
+
+    fetch(`/admin/server-packages/${id}/delete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            alert('Package deleted successfully!');
+            location.reload();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(err => alert('Error: ' + err.message));
+}
+
+// Reset modal when opening for new package
+document.getElementById('addPackageModal').addEventListener('show.bs.modal', function (e) {
+    if (e.relatedTarget && e.relatedTarget.classList.contains('btn-primary')) {
+        document.getElementById('packageForm').reset();
+        document.getElementById('packageId').value = '';
+        document.getElementById('modalTitle').textContent = 'New Server Package';
+        document.getElementById('statusDiv').style.display = 'none';
+        document.getElementById('pricingCredits').checked = true;
+        togglePricing();
+    }
+});
+</script>
+
+<%- include('../partials/footer') %>

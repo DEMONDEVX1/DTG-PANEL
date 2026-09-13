@@ -1,0 +1,365 @@
+<%- include('../partials/header') %>
+
+<% var isRunning = server.status === 'running'; var serverAccent = /^#[0-9a-fA-F]{6}$/.test(server.custom_color || '') ? server.custom_color : '#40916c'; %>
+<style>
+.server-custom-accent{background:<%= serverAccent %> !important;border-color:<%= serverAccent %> !important;color:#fff !important}
+.server-custom-accent:hover{filter:brightness(1.1)}
+</style>
+
+<div class="srv-hero">
+    <div class="srv-hero-left">
+        <div class="srv-hero-icon <%= isRunning ? '' : 'stopped' %>"><i class="fas fa-cube"></i></div>
+        <div>
+            <div class="srv-hero-title"><%= server.name %></div>
+            <div class="srv-hero-sub">
+                <span class="srv-chip"><i class="fas fa-network-wired"></i> Port <%= server.port %></span>
+                <span class="srv-chip"><i class="fas fa-cube"></i> <%= server.server_type || 'vanilla' %></span>
+                <span class="srv-chip"><i class="fas fa-code-branch"></i> <%= server.version || 'Latest' %></span>
+                <span class="srv-chip"><i class="fas fa-clock"></i> <span id="uptimeLabel"><%= isRunning ? 'Uptime' : 'Status' %></span>: <span id="uptime" class="<%= isRunning ? '' : 'text-tertiary' %>"><%= isRunning ? 'Calculating...' : 'Offline' %></span></span>
+            </div>
+        </div>
+    </div>
+    <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+        <span class="srv-hero-status <%= isRunning ? 'online' : 'offline' %>">
+            <span class="status-dot <%= isRunning ? 'online' : 'offline' %>" id="statusDot"></span>
+            <span id="statusText"><%= isRunning ? 'Online' : 'Offline' %></span>
+        </span>
+        <div class="srv-hero-actions" id="serverActions">
+            <button class="btn <%= isRunning ? 'btn-danger' : 'btn-success server-custom-accent' %>" id="toggleBtn" onclick="toggleServer(event)">
+                <i class="fas fa-<%= isRunning ? 'stop' : 'play' %>"></i>
+                <span><%= isRunning ? 'Stop' : 'Start' %></span>
+            </button>
+            <button class="btn btn-warning" id="restartBtn" onclick="restartServer(event)" <%= !isRunning ? 'disabled' : '' %>>
+                <i class="fas fa-sync-alt"></i> <span>Restart</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="p-stats">
+    <div class="p-stat">
+        <div class="p-stat-top">
+            <div class="p-stat-icon info"><i class="fas fa-microchip"></i></div>
+            <div class="p-stat-live"><i class="fas fa-signal"></i> CPU Usage</div>
+        </div>
+        <div class="p-stat-value"><span id="cpuUsage">0%</span></div>
+        <div class="p-bar-track"><div class="p-bar-fill info" id="cpuBar"></div></div>
+    </div>
+    <div class="p-stat">
+        <div class="p-stat-top">
+            <div class="p-stat-icon warning"><i class="fas fa-memory"></i></div>
+            <div class="p-stat-live"><i class="fas fa-memory"></i> RAM Usage</div>
+        </div>
+        <div class="p-stat-value"><span id="ramUsage">0 MB</span><span class="unit">/ <%= server.ram %> MB</span></div>
+        <div class="p-bar-track"><div class="p-bar-fill warning" id="ramBar"></div></div>
+    </div>
+    <div class="p-stat">
+        <div class="p-stat-top">
+            <div class="p-stat-icon success"><i class="fas fa-users"></i></div>
+            <div class="p-stat-live"><i class="fas fa-users"></i> Players Online</div>
+        </div>
+        <div class="p-stat-value"><span id="playersOnline">0</span><span class="unit">/ <span id="maxPlayers">20</span></span></div>
+        <div class="p-bar-track"><div class="p-bar-fill success" id="playersBar"></div></div>
+    </div>
+    <div class="p-stat">
+        <div class="p-stat-top">
+            <div class="p-stat-icon accent"><i class="fas fa-hdd"></i></div>
+            <div class="p-stat-live"><i class="fas fa-hdd"></i> Disk Usage</div>
+        </div>
+        <div class="p-stat-value"><span id="diskUsage">0 MB</span></div>
+        <div class="p-bar-track"><div class="p-bar-fill accent" id="diskBar"></div></div>
+    </div>
+</div>
+
+<div class="grid-2">
+    <div class="p-card">
+        <div class="p-card-header"><h3><i class="fas fa-circle-info"></i> Server Information</h3></div>
+        <div class="p-card-body">
+            <div class="info-rows">
+                <div class="info-row">
+                    <span class="lbl"><i class="fas fa-power-off"></i> Status</span>
+                    <span class="val"><span class="row-dot <%= isRunning ? 'on' : '' %>"></span> <span style="margin-left:6px"><%= isRunning ? 'Online' : 'Offline' %></span></span>
+                </div>
+                <div class="info-row"><span class="lbl"><i class="fas fa-cube"></i> Server Type</span><span class="val"><%= server.server_type || 'vanilla' %></span></div>
+                <div class="info-row"><span class="lbl"><i class="fas fa-code-branch"></i> Version</span><span class="val"><%= server.version || 'Latest' %></span></div>
+                <div class="info-row"><span class="lbl"><i class="fas fa-memory"></i> Allocated RAM</span><span class="val"><%= server.ram %> MB</span></div>
+                <div class="info-row"><span class="lbl"><i class="fas fa-globe"></i> IP Address</span><span class="val mono" id="serverIpPort" style="cursor:pointer;user-select:all;" title="Click to copy"><% var _ip = (server.server_ip && server.server_ip !== '' && server.server_ip !== '0.0.0.0') ? server.server_ip : (server.ip_alias && server.ip_alias !== '' ? server.ip_alias : '127.0.0.1'); %><%= _ip + ':' + server.port %></span></div>
+                <% if (server.minekube_address) { %><div class="info-row"><span class="lbl"><i class="fas fa-cloud"></i> Minekube Connect</span><span class="val mono" style="user-select:all"><%= server.minekube_address %></span></div><% } %>
+                <div class="info-row"><span class="lbl"><i class="fas fa-calendar-times"></i> Expiry</span><span class="val"><%= server.expiry_date ? new Date(server.expiry_date).toLocaleString() : 'Never' %></span></div>
+                <div class="info-row"><span class="lbl"><i class="fas fa-hashtag"></i> Server ID</span><span class="val mono">#<%= server.id %></span></div>
+                <div class="info-row"><span class="lbl"><i class="fas fa-calendar"></i> Created</span><span class="val"><%= new Date(server.created_at).toLocaleDateString() %></span></div>
+            </div>
+        </div>
+    </div>
+    </div>
+</div>
+
+<script>
+const serverId = <%= server.id %>;
+const socket = io();
+socket.emit('join-server', serverId);
+
+// ── Cleanup registry (used by SPA navigation) ─────────────────────────────
+if (!window._pageCleanups) window._pageCleanups = [];
+function registerCleanup(fn) { window._pageCleanups.push(fn); }
+
+function formatUptime(seconds) {
+    if (!seconds || seconds <= 0) return 'Offline';
+    const days = Math.floor(seconds / 86400);
+    const hours = Math.floor((seconds % 86400) / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    if (days > 0) return `${days}d ${hours}h`;
+    if (hours > 0) return `${hours}h ${minutes}m`;
+    return `${minutes}m`;
+}
+
+async function updateStats() {
+    try {
+        const response = await fetch(`/servers/${serverId}/stats`);
+        const data = await response.json();
+        if (data.success && data.stats) {
+            const stats = data.stats;
+            const statusDot = document.getElementById('statusDot');
+            const statusText = document.getElementById('statusText');
+            const uptimeLabel = document.getElementById('uptimeLabel');
+            if (stats.status === 'running') {
+                statusDot.className = 'status-dot online';
+                statusText.textContent = 'Online'; statusText.style.color = 'var(--success)';
+                uptimeLabel.textContent = 'Uptime';
+            } else {
+                statusDot.className = 'status-dot offline';
+                statusText.textContent = 'Offline'; statusText.style.color = 'var(--danger)';
+                uptimeLabel.textContent = 'Status';
+            }
+            const cpuPercent = stats.cpu || 0;
+            document.getElementById('cpuUsage').textContent = cpuPercent.toFixed(1) + '%';
+            document.getElementById('cpuBar').style.width = Math.min(cpuPercent, 100) + '%';
+            const ramMB = stats.memory ? Math.round(stats.memory / 1024 / 1024) : 0;
+            document.getElementById('ramUsage').textContent = ramMB + ' MB';
+            const ramPercent = (<%= server.ram %> > 0) ? (ramMB / <%= server.ram %> * 100) : 0;
+            document.getElementById('ramBar').style.width = Math.min(ramPercent, 100) + '%';
+            document.getElementById('playersOnline').textContent = stats.players || 0;
+            document.getElementById('maxPlayers').textContent = stats.maxPlayers || 20;
+            const maxPlayers = stats.maxPlayers || 20;
+            const playersPercent = maxPlayers > 0 ? (stats.players / maxPlayers * 100) : 0;
+            document.getElementById('playersBar').style.width = Math.min(playersPercent, 100) + '%';
+            const diskMB = stats.diskMB || 0;
+            document.getElementById('diskUsage').textContent = Math.round(diskMB) + ' MB';
+            const diskPercent = diskMB > 0 ? Math.min((diskMB / (10 * 1024) * 100), 100) : 0;
+            const diskBar = document.getElementById('diskBar');
+            const displayPercent = diskMB > 0 ? Math.max(diskPercent, 2) : 0;
+            diskBar.style.width = displayPercent.toFixed(1) + '%';
+            if (diskPercent > 80) diskBar.style.background = 'var(--danger)';
+            else if (diskPercent > 60) diskBar.style.background = 'var(--warning)';
+            else diskBar.style.background = '';
+            const uptimeEl = document.getElementById('uptime');
+            if (stats.status === 'running' && stats.uptime > 0) {
+                uptimeEl.textContent = formatUptime(stats.uptime);
+                uptimeEl.style.color = 'var(--success)';
+            } else {
+                uptimeEl.textContent = 'Offline';
+                uptimeEl.style.color = 'var(--text-tertiary)';
+            }
+        }
+    } catch (error) { /* silently ignore stat fetch errors */ }
+}
+updateStats();
+var _statsInterval = setInterval(updateStats, 5000);
+// Pause polling when tab is hidden (saves server + client resources)
+document.addEventListener('visibilitychange', function() {
+    if (document.hidden) {
+        clearInterval(_statsInterval);
+    } else {
+        updateStats();
+        _statsInterval = setInterval(updateStats, 5000);
+    }
+});
+// Register cleanup for SPA navigation
+registerCleanup(function() {
+    clearInterval(_statsInterval);
+    if (socket) { try { socket.emit('leave-server', serverId); socket.disconnect(); } catch(e) {} }
+});
+
+// Console output handled on the dedicated Console page
+
+// ── Smooth toast notification ──────────────────────────────────────────────
+function showToast(msg, type = 'info', duration = 3500) {
+    let c = document.getElementById('_toastContainer');
+    if (!c) {
+        c = document.createElement('div');
+        c.id = '_toastContainer';
+        c.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:99999;display:flex;flex-direction:column;gap:10px;pointer-events:none;';
+        document.body.appendChild(c);
+    }
+    const colors = { success:'#22c55e', danger:'#ef4444', warning:'#f59e0b', info:'#6366f1' };
+    const icons  = { success:'check-circle', danger:'times-circle', warning:'exclamation-triangle', info:'info-circle' };
+    const t = document.createElement('div');
+    t.style.cssText = `background:var(--bg-secondary,#1e1e2e);border:1px solid ${colors[type]||colors.info};color:var(--text-primary,#fff);padding:12px 18px;border-radius:10px;display:flex;align-items:center;gap:10px;font-size:14px;box-shadow:0 8px 32px rgba(0,0,0,.45);pointer-events:auto;min-width:240px;opacity:0;transform:translateY(16px);transition:all .28s cubic-bezier(.4,0,.2,1);`;
+    t.innerHTML = `<i class="fas fa-${icons[type]||'info-circle'}" style="color:${colors[type]||colors.info}"></i><span>${msg}</span>`;
+    c.appendChild(t);
+    requestAnimationFrame(() => { t.style.opacity='1'; t.style.transform='translateY(0)'; });
+    setTimeout(() => { t.style.opacity='0'; t.style.transform='translateY(16px)'; setTimeout(() => t.remove(), 300); }, duration);
+}
+
+// ── Live status DOM update (no reload) ────────────────────────────────────
+function applyStatus(running) {
+    const dot  = document.getElementById('statusDot');
+    const txt  = document.getElementById('statusText');
+    const lbl  = document.getElementById('uptimeLabel');
+    const hero = document.querySelector('.srv-hero-icon');
+    const tBtn = document.getElementById('toggleBtn');
+    const rBtn = document.getElementById('restartBtn');
+
+    dot.className  = `status-dot ${running ? 'online' : 'offline'}`;
+    txt.textContent = running ? 'Online' : 'Offline';
+    txt.style.color = running ? 'var(--success)' : 'var(--danger)';
+    lbl.textContent = running ? 'Uptime' : 'Status';
+    if (hero) { hero.classList.toggle('stopped', !running); }
+
+    if (tBtn) {
+        tBtn.disabled = false;
+        tBtn.className = `btn ${running ? 'btn-danger' : 'btn-success'}`;
+        tBtn.innerHTML = `<i class="fas fa-${running ? 'stop' : 'play'}"></i> <span>${running ? 'Stop' : 'Start'}</span>`;
+        tBtn.dataset.running = running ? '1' : '0';
+    }
+    if (rBtn) { rBtn.disabled = !running; }
+}
+
+// ── Toggle (Start / Stop) ─────────────────────────────────────────────────
+function toggleServer(e) {
+    const tBtn = document.getElementById('toggleBtn');
+    const isRunning = tBtn.dataset.running === '1';
+    const action = isRunning ? 'stop' : 'start';
+
+    // Cancel any existing status poll
+    if (window._statusPoll) { clearInterval(window._statusPoll); window._statusPoll = null; }
+
+    tBtn.disabled = true;
+    tBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> <span>${action === 'start' ? 'Starting…' : 'Stopping…'}</span>`;
+    document.getElementById('restartBtn').disabled = true;
+
+    showToast(`${action === 'start' ? 'Starting' : 'Stopping'} server…`, 'info', 4000);
+
+    fetch(`/servers/${serverId}/${action}`, { method: 'POST', headers: { 'Content-Type': 'application/json' } })
+    .then(r => { if (!r.ok && r.status !== 400) throw new Error('HTTP ' + r.status); return r.json(); })
+    .then(data => {
+        if (data.success) {
+            showToast(`Server ${action === 'start' ? 'start' : 'stop'} request sent!`, 'success');
+            // Fallback poll — socket serverStatus event will cancel this when it arrives
+            let polls = 0;
+            window._statusPoll = setInterval(() => {
+                polls++;
+                fetch(`/servers/${serverId}/stats`)
+                .then(r => r.json())
+                .then(d => {
+                    const nowRunning = d.success && d.stats && d.stats.status === 'running';
+                    if (action === 'start' ? nowRunning : !nowRunning) {
+                        clearInterval(window._statusPoll); window._statusPoll = null;
+                        applyStatus(nowRunning);
+                    } else if (polls > 20) {
+                        clearInterval(window._statusPoll); window._statusPoll = null;
+                        applyStatus(nowRunning);
+                    }
+                }).catch(() => {});
+            }, 1500);
+        } else {
+            showToast(data.error || `Failed to ${action} server`, 'danger');
+            applyStatus(isRunning);
+        }
+    })
+    .catch(err => {
+        showToast('Network error — please try again.', 'danger');
+        console.error('toggleServer error:', err);
+        applyStatus(isRunning);
+    });
+}
+
+// ── Restart ────────────────────────────────────────────────────────────────
+function restartServer(e) {
+    const rBtn = document.getElementById('restartBtn');
+    const tBtn = document.getElementById('toggleBtn');
+
+    // Cancel any existing status poll
+    if (window._statusPoll) { clearInterval(window._statusPoll); window._statusPoll = null; }
+
+    rBtn.disabled = true;
+    tBtn.disabled = true;
+    rBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>Restarting…</span>';
+    showToast('Restarting server…', 'info', 5000);
+
+    fetch(`/servers/${serverId}/restart`, { method: 'POST', headers: { 'Content-Type': 'application/json' } })
+    .then(r => { if (!r.ok && r.status !== 400) throw new Error('HTTP ' + r.status); return r.json(); })
+    .then(data => {
+        if (data.success) {
+            showToast('Server restarting… waiting for it to come back online.', 'warning', 8000);
+            // Fallback poll after 3s delay — socket event will cancel it if received first
+            setTimeout(() => {
+                let polls = 0;
+                window._statusPoll = setInterval(() => {
+                    polls++;
+                    fetch(`/servers/${serverId}/stats`)
+                    .then(r => r.json())
+                    .then(d => {
+                        const nowRunning = d.success && d.stats && d.stats.status === 'running';
+                        if (nowRunning || polls > 24) {
+                            clearInterval(window._statusPoll); window._statusPoll = null;
+                            rBtn.innerHTML = '<i class="fas fa-sync-alt"></i> <span>Restart</span>';
+                            applyStatus(nowRunning);
+                            if (nowRunning) showToast('Server restarted successfully!', 'success');
+                        }
+                    }).catch(() => {});
+                }, 2000);
+            }, 3000);
+        } else {
+            showToast(data.error || 'Failed to restart server', 'danger');
+            rBtn.innerHTML = '<i class="fas fa-sync-alt"></i> <span>Restart</span>';
+            rBtn.disabled = false;
+            tBtn.disabled = false;
+        }
+    })
+    .catch(err => {
+        showToast('Network error — please try again.', 'danger');
+        console.error('restartServer error:', err);
+        rBtn.innerHTML = '<i class="fas fa-sync-alt"></i> <span>Restart</span>';
+        rBtn.disabled = false; tBtn.disabled = false;
+    });
+}
+
+// ── Copy IP:Port on click ─────────────────────────────────────────────────
+const ipPortEl = document.getElementById('serverIpPort');
+if (ipPortEl && ipPortEl.textContent !== 'Not assigned') {
+    ipPortEl.addEventListener('click', () => {
+        navigator.clipboard.writeText(ipPortEl.textContent).then(() => showToast('Server address copied!', 'success', 2000)).catch(() => {});
+    });
+}
+
+// ── Seed toggleBtn state from initial server status ──────────────────────
+document.getElementById('toggleBtn').dataset.running = '<%= isRunning ? "1" : "0" %>';
+
+// ── Real-time status from socket (no polling delay) ──────────────────────
+socket.on('serverStatus', function(data) {
+    var status = data.status;
+    if (status === 'running') {
+        applyStatus(true);
+        // Clear any pending poll interval triggered by toggleServer
+        if (window._statusPoll) { clearInterval(window._statusPoll); window._statusPoll = null; }
+    } else if (status === 'stopped' || status === 'crashed') {
+        applyStatus(false);
+        if (window._statusPoll) { clearInterval(window._statusPoll); window._statusPoll = null; }
+        if (status === 'crashed') {
+            showToast('Server crashed! Check the Console for errors.', 'danger', 8000);
+        }
+    } else if (status === 'starting') {
+        // Optionally show a transitional state
+        var tBtn = document.getElementById('toggleBtn');
+        if (tBtn) tBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>Starting…</span>';
+    }
+});
+
+window.addEventListener('beforeunload', function() {
+    try { socket.emit('leave-server', serverId); } catch(e) {}
+});
+</script>
+
+<%- include('../partials/footer') %>
+

@@ -1,0 +1,419 @@
+<%- include('../partials/header') %>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">
+            <i class="fas fa-server text-accent"></i>
+            Server Management
+        </h1>
+        <p class="page-subtitle">Manage all panel servers</p>
+    </div>
+    <div class="page-actions">
+        <a href="/admin/servers/create" class="btn btn-primary">
+            <i class="fas fa-plus"></i>
+            Create Server
+        </a>
+    </div>
+</div>
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon accent"><i class="fas fa-server"></i></div>
+        <div class="stat-content">
+            <div class="stat-label">Total Servers</div>
+            <div class="stat-value"><%= servers.length %></div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon success"><i class="fas fa-play-circle"></i></div>
+        <div class="stat-content">
+            <div class="stat-label">Running</div>
+            <div class="stat-value"><%= servers.filter(s => s.status === 'running').length %></div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon danger"><i class="fas fa-stop-circle"></i></div>
+        <div class="stat-content">
+            <div class="stat-label">Stopped</div>
+            <div class="stat-value"><%= servers.filter(s => s.status === 'stopped').length %></div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon warning"><i class="fas fa-memory"></i></div>
+        <div class="stat-content">
+            <div class="stat-label">Total RAM</div>
+            <div class="stat-value"><%= servers.reduce((acc, s) => acc + (s.ram || 0), 0) %> MB</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon info"><i class="fas fa-microchip"></i></div>
+        <div class="stat-content">
+            <div class="stat-label">Total CPU</div>
+            <div class="stat-value"><%= servers.reduce((acc, s) => acc + (s.cpu || 2), 0) %> Cores</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon success"><i class="fas fa-hdd"></i></div>
+        <div class="stat-content">
+            <div class="stat-label">Total Disk</div>
+            <div class="stat-value"><%= (servers.reduce((acc, s) => acc + (s.disk || 10240), 0) / 1024).toFixed(0) %> GB</div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="GET" action="/admin/servers" class="d-flex gap-2 flex-wrap">
+            <div class="input-group" style="flex: 1; min-width: 250px;">
+                <input type="text" name="search" class="form-control" placeholder="Search by server name or owner..." value="<%= search || '' %>">
+            </div>
+            <select name="type" class="form-control" style="width: 150px;" onchange="this.form.submit()">
+                <option value="">All Types</option>
+                <option value="vanilla" <%= (typeof type !== 'undefined' && type === 'vanilla') ? 'selected' : '' %>>Vanilla</option>
+                <option value="paper" <%= (typeof type !== 'undefined' && type === 'paper') ? 'selected' : '' %>>Paper</option>
+                <option value="purpur" <%= (typeof type !== 'undefined' && type === 'purpur') ? 'selected' : '' %>>Purpur</option>
+                <option value="spigot" <%= (typeof type !== 'undefined' && type === 'spigot') ? 'selected' : '' %>>Spigot</option>
+                <option value="fabric" <%= (typeof type !== 'undefined' && type === 'fabric') ? 'selected' : '' %>>Fabric</option>
+                <option value="forge" <%= (typeof type !== 'undefined' && type === 'forge') ? 'selected' : '' %>>Forge</option>
+                <option value="velocity" <%= (typeof type !== 'undefined' && type === 'velocity') ? 'selected' : '' %>>Velocity</option>
+                <option value="bungeecord" <%= (typeof type !== 'undefined' && type === 'bungeecord') ? 'selected' : '' %>>BungeeCord</option>
+                <option value="waterfall" <%= (typeof type !== 'undefined' && type === 'waterfall') ? 'selected' : '' %>>Waterfall</option>
+                <option value="bedrock" <%= (typeof type !== 'undefined' && type === 'bedrock') ? 'selected' : '' %>>Bedrock</option>
+            </select>
+            <select name="status" class="form-control" style="width: 150px;" onchange="this.form.submit()">
+                <option value="">All Status</option>
+                <option value="running" <%= (typeof status !== 'undefined' && status === 'running') ? 'selected' : '' %>>Running</option>
+                <option value="stopped" <%= (typeof status !== 'undefined' && status === 'stopped') ? 'selected' : '' %>>Stopped</option>
+            </select>
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-search"></i>
+                Search
+            </button>
+            <% if (search || (typeof type !== 'undefined' && type) || (typeof status !== 'undefined' && status)) { %>
+                <a href="/admin/servers" class="btn btn-ghost">
+                    <i class="fas fa-times"></i>
+                    Clear
+                </a>
+            <% } %>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header d-flex align-center justify-between">
+        <h3 class="d-flex align-center gap-2 fw-600">
+            <i class="fas fa-server text-accent"></i>
+            All Servers
+            <span class="badge badge-info"><%= servers.length %></span>
+        </h3>
+        <button class="btn btn-sm btn-ghost" onclick="location.reload()">
+            <i class="fas fa-sync-alt"></i>
+            Refresh
+        </button>
+    </div>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th class="text-sm">ID</th>
+                    <th>Server</th>
+                    <th>Owner</th>
+                    <th class="text-sm">Type</th>
+                    <th class="text-sm">Version</th>
+                    <th class="text-sm">Status</th>
+                    <th class="text-sm">Port</th>
+                    <th>Resources</th>
+                    <th class="text-sm">Expiry</th>
+                    <th class="text-center">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% if (servers.length === 0) { %>
+                    <tr>
+                        <td colspan="10" class="text-center p-5 text-muted">
+                            <i class="fas fa-server text-muted" style="font-size: 48px; opacity: 0.2; display: block; margin-bottom: 12px;"></i>
+                            <div class="fw-500 mb-1">No servers found</div>
+                            <div class="text-sm">Try adjusting your search filters</div>
+                        </td>
+                    </tr>
+                <% } else { %>
+                    <% servers.forEach(s => { %>
+                        <tr>
+                            <td class="text-xs text-muted">#<%= s.id %></td>
+                            <td>
+                                <div class="d-flex align-center gap-2">
+                                    <div class="flex-shrink-0" style="width: 36px; height: 36px; border-radius: var(--r-md); background: <%= s.custom_color || 'var(--accent)' %>; display: flex; align-items: center; justify-content: center;">
+                                        <i class="fas fa-server" style="color:#fff"></i>
+                                    </div>
+                                    <div class="fw-600"><%= s.name %></div>
+                                </div>
+                            </td>
+                            <td class="text-secondary"><%= s.owner_name || 'Unknown' %></td>
+                            <td><span class="badge badge-info"><%= s.server_type || 'vanilla' %></span></td>
+                            <td class="text-secondary text-sm"><%= s.version || 'Latest' %></td>
+                            <td>
+                                <span class="badge <%= s.status === 'running' ? 'badge-success' : 'badge-danger' %>">
+                                    <span class="status-dot <%= s.status === 'running' ? 'online' : 'offline' %>"></span>
+                                    <%= s.status %>
+                                </span>
+                            </td>
+                            <td class="text-secondary"><%= s.port %></td>
+                            <td>
+                                <div class="d-flex flex-column gap-1 text-xs">
+                                    <div class="d-flex align-center gap-1">
+                                        <i class="fas fa-memory text-warning" style="width: 12px;"></i>
+                                        <span class="text-muted">RAM:</span>
+                                        <span class="fw-600"><%= s.ram %> MB</span>
+                                    </div>
+                                    <div class="d-flex align-center gap-1">
+                                        <i class="fas fa-microchip text-info" style="width: 12px;"></i>
+                                        <span class="text-muted">CPU:</span>
+                                        <span class="fw-600"><%= s.cpu || 2 %> Cores</span>
+                                    </div>
+                                    <div class="d-flex align-center gap-1">
+                                        <i class="fas fa-hdd text-success" style="width: 12px;"></i>
+                                        <span class="text-muted">Disk:</span>
+                                        <span class="fw-600"><%= ((s.disk || 10240) / 1024).toFixed(1) %> GB</span>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="text-secondary text-sm"><%= s.expiry_date ? new Date(s.expiry_date).toLocaleDateString() : 'Never' %></td>
+                            <td class="text-center">
+                                <div class="d-flex gap-1 justify-center">
+                                    <a href="/servers/<%= s.id %>/dashboard" class="btn-icon" title="View Dashboard">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="/admin/servers/<%= s.id %>/edit" class="btn-icon" title="Edit Server">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <button class="btn-icon <%= s.status === 'running' ? 'btn-danger' : 'btn-success' %>" 
+                                            onclick="toggleServer(event, <%= s.id %>, '<%= s.status %>')" 
+                                            title="<%= s.status === 'running' ? 'Stop' : 'Start' %>">
+                                        <i class="fas fa-<%= s.status === 'running' ? 'stop' : 'play' %>"></i>
+                                    </button>
+                                    <button class="btn-icon btn-danger delete-server-btn" 
+                                            data-server-id="<%= s.id %>" 
+                                            data-server-name="<%= s.name %>" 
+                                            title="Delete Server">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    <% }) %>
+                <% } %>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="modal-overlay" id="deleteModal" style="display: none;">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h4 class="d-flex align-center gap-2 fw-600">
+                <i class="fas fa-exclamation-triangle text-danger"></i>
+                Delete Server
+            </h4>
+            <button class="modal-close" onclick="closeDeleteModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="alert alert-error">
+                <div class="fw-600 mb-1 d-flex align-center gap-1">
+                    <i class="fas fa-exclamation-circle"></i>
+                    Warning: This action cannot be undone!
+                </div>
+                <div class="text-sm text-muted mb-1">This will permanently delete:</div>
+                <ul class="text-sm text-muted" style="margin: 8px 0 0 0; padding-left: 20px;">
+                    <li>All server files and configurations</li>
+                    <li>All backups associated with this server</li>
+                    <li>All worlds, plugins, and data</li>
+                </ul>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label fw-600">Server to delete:</label>
+                <div class="d-flex align-center gap-2 p-2 rounded" style="background: var(--bg-tertiary);">
+                    <i class="fas fa-server text-danger"></i>
+                    <span class="fw-600" id="deleteServerName"></span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label fw-600">Type the server name to confirm:</label>
+                <input type="text" id="confirmServerName" class="form-control" placeholder="Enter server name">
+                <span id="confirmError" class="text-xs text-danger mt-1" style="display: none;">
+                    <i class="fas fa-times-circle"></i>
+                    Server name does not match
+                </span>
+            </div>
+
+            <div class="form-actions">
+                <button type="button" class="btn btn-ghost" onclick="closeDeleteModal()">
+                    <i class="fas fa-times"></i>
+                    Cancel
+                </button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn" onclick="confirmDelete()">
+                    <i class="fas fa-trash"></i>
+                    Delete Server
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+tr:hover { background: var(--bg-hover) !important; }
+</style>
+
+<script>
+function toggleServer(e, serverId, currentStatus) {
+    const action = currentStatus === 'running' ? 'stop' : 'start';
+    
+    if (!confirm(`Are you sure you want to ${action} this server?`)) {
+        return;
+    }
+
+    showLoading(`${action === 'start' ? 'Starting' : 'Stopping'} server...`, true);
+    const btn = e.target.closest('button');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+    fetch(`/servers/${serverId}/${action}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+    })
+    .then(res => res.json())
+    .then(data => {
+        hideLoading();
+        if (data.success) {
+            showToast(`Server ${action}ed successfully!`, 'success');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showToast('Error: ' + (data.error || `Failed to ${action} server`), 'error');
+            btn.disabled = false;
+            btn.innerHTML = `<i class="fas fa-${action === 'start' ? 'play' : 'stop'}"></i>`;
+        }
+    })
+    .catch(err => {
+        hideLoading();
+        console.error('Error:', err);
+        showToast('An error occurred', 'error');
+        btn.disabled = false;
+        btn.innerHTML = `<i class="fas fa-${action === 'start' ? 'play' : 'stop'}"></i>`;
+    });
+}
+
+let deleteServerId = null;
+let deleteServerName = null;
+
+function showDeleteModal(serverId, serverName) {
+    console.log('Show delete modal:', serverId, serverName);
+    deleteServerId = serverId;
+    deleteServerName = serverName;
+    
+    document.getElementById('deleteServerName').textContent = serverName;
+    document.getElementById('confirmServerName').value = '';
+    document.getElementById('confirmError').style.display = 'none';
+    document.getElementById('deleteModal').style.display = 'flex';
+    
+    setTimeout(() => {
+        document.getElementById('confirmServerName').focus();
+    }, 100);
+}
+
+function closeDeleteModal() {
+    document.getElementById('deleteModal').style.display = 'none';
+    deleteServerId = null;
+    deleteServerName = null;
+}
+
+function confirmDelete() {
+    const confirmInput = document.getElementById('confirmServerName').value;
+    const confirmError = document.getElementById('confirmError');
+    const confirmBtn = document.getElementById('confirmDeleteBtn');
+    
+    if (confirmInput !== deleteServerName) {
+        confirmError.style.display = 'block';
+        document.getElementById('confirmServerName').style.borderColor = '#ef4444';
+        return;
+    }
+    
+    const serverId = deleteServerId;
+    const serverName = deleteServerName;
+    
+    confirmBtn.disabled = true;
+    confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deleting...';
+    document.getElementById('deleteModal').style.display = 'none';
+
+    showLoading('Deleting server "' + serverName + '"...', true);
+    
+    fetch('/admin/servers/' + serverId + '/delete', { method: 'POST', credentials: 'include' })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+        if (d.success) {
+            showLoading('Deleted! Redirecting...');
+            setTimeout(function() { location.reload(); }, 600);
+        } else {
+            hideLoading();
+            showToast(d.error || 'Failed to delete server', 'error');
+            confirmBtn.disabled = false;
+            confirmBtn.innerHTML = '<i class="fas fa-trash"></i> Delete Server';
+        }
+    })
+    .catch(function() {
+        hideLoading();
+        showToast('Request failed', 'error');
+        confirmBtn.disabled = false;
+        confirmBtn.innerHTML = '<i class="fas fa-trash"></i> Delete Server';
+    });
+}
+
+document.addEventListener('click', function(e) {
+    const modal = document.getElementById('deleteModal');
+    if (e.target === modal) {
+        closeDeleteModal();
+    }
+});
+
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        const modal = document.getElementById('deleteModal');
+        if (modal && modal.style.display === 'flex') {
+            closeDeleteModal();
+        }
+    }
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded, initializing delete buttons...');
+    
+    const confirmInput = document.getElementById('confirmServerName');
+    if (confirmInput) {
+        confirmInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                confirmDelete();
+            }
+        });
+        
+        confirmInput.addEventListener('input', function() {
+            document.getElementById('confirmError').style.display = 'none';
+            this.style.borderColor = '';
+        });
+    }
+    
+    const deleteButtons = document.querySelectorAll('.delete-server-btn');
+    console.log('Found delete buttons:', deleteButtons.length);
+    
+    deleteButtons.forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const serverId = this.dataset.serverId;
+            const serverName = this.dataset.serverName;
+            console.log('Delete button clicked:', serverId, serverName);
+            showDeleteModal(serverId, serverName);
+        });
+    });
+});
+</script>
+<%- include('../partials/footer') %>

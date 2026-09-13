@@ -1,0 +1,641 @@
+<%- include('../partials/header') %>
+
+<% var isRunning = server.status === 'running'; %>
+
+<div class="srv-hero">
+    <div class="srv-hero-left">
+        <div class="srv-hero-icon <%= isRunning ? '' : 'stopped' %>"><i class="fas fa-folder-open"></i></div>
+        <div>
+            <div class="srv-hero-title"><%= server.name %> <span class="srv-chip"><i class="fas fa-folder-open"></i> File Manager</span></div>
+            <div class="srv-hero-sub">
+                <span class="srv-chip"><i class="fas fa-network-wired"></i> Port <%= server.port %></span>
+                <span class="srv-chip" id="diskInfo" style="display:none;"><i class="fas fa-hdd"></i> <span id="diskText"></span></span>
+            </div>
+        </div>
+    </div>
+    <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+        <span class="srv-hero-status <%= isRunning ? 'online' : 'offline' %>">
+            <span class="status-dot <%= isRunning ? 'online' : 'offline' %>"></span>
+            <span><%= isRunning ? 'Online' : 'Offline' %></span>
+        </span>
+        <span id="uploadLimitInfo" class="srv-chip" style="display:none;"></span>
+        <div class="srv-hero-actions">
+            <button class="btn btn-primary" onclick="showUploadModal()"><i class="fas fa-upload"></i> Upload</button>
+            <button class="btn btn-ghost" onclick="showCreateModal()"><i class="fas fa-plus"></i> New File</button>
+            <button class="btn btn-ghost" onclick="showCreateFolderModal()"><i class="fas fa-folder-plus"></i> New Folder</button>
+        </div>
+    </div>
+</div>
+
+<div class="fm-toolbar">
+    <div class="d-flex align-center gap-2 flex-1">
+        <label class="d-flex align-center gap-1 text-sm text-muted" style="cursor:pointer;">
+            <input type="checkbox" id="selectAll" onchange="toggleSelectAll()" style="margin:0;">
+            <span>All</span>
+        </label>
+        <span id="selectionCount" class="text-sm text-muted"></span>
+        <button class="btn btn-sm btn-ghost" id="cutBtn" onclick="cutFiles()" style="display:none" title="Cut (Ctrl+X)"><i class="fas fa-scissors"></i> Cut</button>
+        <button class="btn btn-sm btn-primary" id="pasteBtn" onclick="pasteFiles()" style="display:none" title="Paste (Ctrl+V)"><i class="fas fa-paste"></i> Paste</button>
+    </div>
+    <div id="bulkActions" class="d-flex gap-1" style="display:none;">
+        <button class="btn btn-sm btn-ghost" onclick="bulkDownload()" title="Download Selected"><i class="fas fa-download"></i></button>
+        <button class="btn btn-sm btn-ghost" onclick="bulkZip()" title="Zip Selected"><i class="fas fa-file-archive"></i></button>
+        <button class="btn btn-sm btn-danger" onclick="bulkDelete()" title="Delete Selected"><i class="fas fa-trash"></i></button>
+    </div>
+    <div class="d-flex align-center gap-2">
+        <div class="form-group mb-0" style="position:relative;">
+            <i class="fas fa-search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-tertiary);font-size:12px;"></i>
+            <input type="text" id="fileSearch" class="form-control" placeholder="Search files..." oninput="filterFiles()" style="padding-left:28px;width:200px;">
+        </div>
+        <label class="d-flex align-center gap-1 text-sm text-muted" style="cursor:pointer;">
+            <input type="checkbox" id="showHidden" onchange="filterFiles()">
+            <span>Hidden</span>
+        </label>
+        <button class="btn btn-sm btn-ghost" onclick="refreshFiles()" title="Refresh (F5)"><i class="fas fa-sync-alt"></i></button>
+        <select id="sortBySelect" onchange="sortBy(this.value)" class="form-control" style="width:auto;font-size:12px;padding:4px 8px;">
+            <option value="name">Name</option><option value="size">Size</option><option value="modified">Date</option><option value="type">Type</option>
+        </select>
+    </div>
+</div>
+
+<div id="cutIndicator" class="alert alert-warning" style="display:none;padding:8px 14px;margin-bottom:12px;">
+    <i class="fas fa-scissors"></i> <span id="cutCount">0</span> file(s) cut — navigate to destination and paste
+    <button class="btn btn-sm btn-ghost" onclick="cancelCut()" style="margin-left:auto;"><i class="fas fa-times"></i></button>
+</div>
+
+<div class="fm-path">
+    <i class="fas fa-folder-open text-muted"></i>
+    <a href="/servers/<%= server.id %>/files" class="text-accent">root</a>
+    <% if (currentPath && currentPath !== '/') { %>
+        <% const parts = currentPath.split('/').filter(p => p); %>
+        <% let path = ''; %>
+        <% parts.forEach((part, index) => { %>
+            <% path += '/' + part; %>
+            <span class="text-muted">/</span>
+            <% if (index === parts.length - 1) { %>
+                <span><%= part %></span>
+            <% } else { %>
+                <a href="/servers/<%= server.id %>/files?path=<%= encodeURIComponent(path) %>" class="text-accent"><%= part %></a>
+            <% } %>
+        <% }) %>
+    <% } %>
+</div>
+
+<div class="table-wrap">
+    <table id="filesTable">
+        <thead>
+            <tr>
+                <th style="width:36px;"><input type="checkbox" id="headerCheckbox" onchange="toggleSelectAll()" style="margin:0;"></th>
+                <th class="text-sm" style="cursor:pointer;" onclick="sortBy('name')">Name <i class="fas fa-sort" id="sort-name"></i></th>
+                <th class="text-sm" style="cursor:pointer;" onclick="sortBy('type')">Type <i class="fas fa-sort" id="sort-type"></i></th>
+                <th class="text-sm" style="cursor:pointer;" onclick="sortBy('size')">Size <i class="fas fa-sort" id="sort-size"></i></th>
+                <th class="text-sm" style="cursor:pointer;" onclick="sortBy('modified')">Modified <i class="fas fa-sort" id="sort-modified"></i></th>
+                <th class="text-sm" style="width:200px;">Actions</th>
+            </tr>
+        </thead>
+        <tbody id="filesTableBody">
+            <% if (currentPath && currentPath !== '/') { %>
+                <tr>
+                    <td></td>
+                    <td><a href="/servers/<%= server.id %>/files?path=<%= encodeURIComponent(currentPath.split('/').slice(0, -1).join('/') || '/') %>" class="text-accent"><i class="fas fa-level-up-alt"></i> ..</a></td>
+                    <td colspan="4"></td>
+                </tr>
+            <% } %>
+            <% if (files && files.length > 0) { %>
+                <% const sortedFiles = files.sort((a, b) => { if (a.isDirectory && !b.isDirectory) return -1; if (!a.isDirectory && b.isDirectory) return 1; return a.name.localeCompare(b.name); }); %>
+                <% sortedFiles.forEach(file => { %>
+                    <tr class="file-row" data-path="<%= file.path %>" data-name="<%= file.name %>" data-type="<%= file.isDirectory ? 'folder' : 'file' %>" data-size="<%= file.size || '' %>" data-modified="<%= file.modified || '' %>">
+                        <td><input type="checkbox" class="file-checkbox" value="<%= file.path %>" onchange="updateSelection()" style="margin:0;"></td>
+                        <td>
+                            <% if (file.isDirectory) { %>
+                                <a href="/servers/<%= server.id %>/files?path=<%= encodeURIComponent(file.path) %>" class="text-accent d-flex align-center gap-1">
+                                    <i class="fas fa-folder" style="color:var(--warning);"></i> <span class="file-name fw-500"><%= file.name %></span>
+                                </a>
+                            <% } else { %>
+                                <div class="d-flex align-center gap-1">
+                                    <% const ext = file.name.split('.').pop().toLowerCase(); let icon = 'fa-file'; let color = 'var(--text-tertiary)';
+                                    if (file.name === 'server.properties') { icon = 'fa-cogs'; color = 'var(--accent)'; }
+                                    else if (file.name === 'velocity.toml') { icon = 'fa-rocket'; color = 'var(--accent)'; }
+                                    else if (file.name === 'config.yml') { icon = 'fa-network-wired'; color = '#FF6B35'; }
+                                    else if (['zip','rar','7z','tar','gz'].includes(ext)) { icon = 'fa-file-archive'; color = '#22c55e'; }
+                                    else if (['txt','log','md','json','yml','yaml','properties'].includes(ext)) { icon = 'fa-file-alt'; color = 'var(--accent)'; }
+                                    else if (['jpg','jpeg','png','gif','bmp','svg'].includes(ext)) { icon = 'fa-file-image'; color = '#ec4899'; }
+                                    else if (['jar','exe','msi','deb','rpm'].includes(ext)) { icon = 'fa-file-code'; color = '#f59e0b'; } %>
+                                    <i class="fas <%= icon %>" style="color:<%= color %>;"></i>
+                                    <span class="file-name fw-500"><%= file.name %></span>
+                                    <% if (file.name === 'server.properties') { %><span class="badge badge-info" style="font-size:10px;margin-left:6px;">DYNAMIC</span><% } %>
+                                    <% if (file.name === 'velocity.toml') { %><span class="badge badge-info" style="font-size:10px;margin-left:6px;">DYNAMIC</span><% } %>
+                                    <% if (file.name === 'config.yml') { %><span class="badge badge-warning" style="font-size:10px;margin-left:6px;">PORT PROTECTED</span><% } %>
+                                </div>
+                            <% } %>
+                        </td>
+                        <td><span class="badge <%= file.isDirectory ? 'badge-warning' : 'badge-info' %>"><%= file.isDirectory ? 'Folder' : 'File' %></span></td>
+                        <td class="text-sm file-size"><%= file.size || '-' %></td>
+                        <td class="text-sm file-modified"><%= file.modified || '-' %></td>
+                        <td>
+                            <div class="d-flex gap-1">
+                                <% if (!file.isDirectory) { %>
+                                    <% if (file.name === 'server.properties') { %>
+                                        <button class="btn-icon btn-primary" onclick="viewFile(<%- JSON.stringify(file.path) %>)" title="Configure (Dynamic Editor)"><i class="fas fa-cogs"></i></button>
+                                    <% } else if (file.name === 'velocity.toml') { %>
+                                        <button class="btn-icon btn-primary" onclick="viewFile(<%- JSON.stringify(file.path) %>)" title="Configure (Dynamic TOML Editor)"><i class="fas fa-rocket"></i></button>
+                                    <% } else { %>
+                                        <button class="btn-icon btn-ghost" onclick="viewFile(<%- JSON.stringify(file.path) %>)" title="View"><i class="fas fa-eye"></i></button>
+                                    <% } %>
+                                    <button class="btn-icon btn-primary" onclick="downloadFile(<%- JSON.stringify(file.path) %>)" title="Download"><i class="fas fa-download"></i></button>
+                                    <% if (file.name.endsWith('.zip')) { %>
+                                        <button class="btn-icon btn-success" onclick="unzipFile(<%- JSON.stringify(file.path) %>, <%- JSON.stringify(file.name) %>)" title="Unzip"><i class="fas fa-file-archive"></i></button>
+                                    <% } %>
+                                <% } else { %>
+                                    <button class="btn-icon btn-warning" onclick="zipFolder(<%- JSON.stringify(file.path) %>, <%- JSON.stringify(file.name) %>)" title="Zip Folder"><i class="fas fa-file-archive"></i></button>
+                                <% } %>
+                                <button class="btn-icon btn-info" onclick="renameItem(<%- JSON.stringify(file.path) %>, <%- JSON.stringify(file.name) %>, <%= file.isDirectory %>)" title="Rename"><i class="fas fa-edit"></i></button>
+                                <% if (file.name !== 'server.properties' && file.name !== 'velocity.toml' && file.name !== 'config.yml') { %>
+                                    <button class="btn-icon btn-danger fm-delete-btn" data-path=<%- JSON.stringify(file.path) %> data-name=<%- JSON.stringify(file.name) %> data-isdir="<%= file.isDirectory %>" title="Delete"><i class="fas fa-trash"></i></button>
+                                    <%# NOTE: data-path and data-name use JSON.stringify which always produces quoted strings, safe for any characters %>
+                                <% } else { %>
+                                    <button class="btn-icon" style="opacity:0.4;cursor:not-allowed;background:transparent;border:1px solid var(--danger);color:var(--danger);" title="Protected - cannot delete"><i class="fas fa-shield-alt"></i></button>
+                                <% } %>
+                            </div>
+                        </td>
+                    </tr>
+                <% }) %>
+            <% } else { %>
+                <tr><td colspan="6" class="text-center p-4 text-muted"><i class="fas fa-folder-open" style="font-size:48px;display:block;margin-bottom:16px;"></i>This folder is empty</td></tr>
+            <% } %>
+        </tbody>
+    </table>
+</div>
+
+<div class="modal-overlay" id="uploadModal" style="display:none;">
+    <div class="modal-box" style="max-width:600px;">
+        <div class="modal-header">
+            <h3>Upload Files</h3>
+            <button class="modal-close" onclick="closeUploadModal()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+            <div id="uploadDropZone" class="upload-drop-zone" onclick="document.getElementById('uploadFileInput').click()">
+                <i class="fas fa-cloud-upload-alt" style="font-size:40px;color:var(--accent);margin-bottom:12px;display:block;"></i>
+                <div class="text-sm mb-1" style="color:var(--text-primary);">Drop files here or click to browse</div>
+                <div class="text-xs text-muted">Any file size — resumable uploads</div>
+                <input type="file" id="uploadFileInput" multiple style="display:none;" onchange="handleUploadFiles(this.files)">
+            </div>
+            <div id="uploadQueue" style="margin-top:16px;max-height:300px;overflow-y:auto;"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeUploadModal()">Close</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="createModal" style="display:none;">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h3>Create New File</h3>
+            <button class="modal-close" onclick="closeCreateModal()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+            <form id="createForm" onsubmit="createFile(event)">
+                <div class="form-group">
+                    <label class="form-label">File Name</label>
+                    <input type="text" name="filename" class="form-control" placeholder="example.txt" required>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-ghost" onclick="closeCreateModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-plus"></i> Create</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="createFolderModal" style="display:none;">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h3>Create New Folder</h3>
+            <button class="modal-close" onclick="closeCreateFolderModal()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+            <form id="createFolderForm" onsubmit="createFolder(event)">
+                <div class="form-group">
+                    <label class="form-label">Folder Name</label>
+                    <input type="text" name="foldername" class="form-control" placeholder="New Folder" required>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-ghost" onclick="closeCreateFolderModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-folder-plus"></i> Create</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="renameModal" style="display:none;">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h3>Rename <span id="renameType">Item</span></h3>
+            <button class="modal-close" onclick="closeRenameModal()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+            <form id="renameForm" onsubmit="performRename(event)">
+                <input type="hidden" id="renameOldPath" name="oldPath">
+                <div class="form-group">
+                    <label class="form-label">New Name</label>
+                    <input type="text" id="renameNewName" name="newName" class="form-control" required>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-ghost" onclick="closeRenameModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Rename</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="zipModal" style="display:none;">
+    <div class="modal-box">
+        <div class="modal-header"><h3>Creating Archive</h3></div>
+        <div class="modal-body text-center p-4">
+            <i class="fas fa-spinner fa-spin" style="font-size:48px;color:var(--accent);margin-bottom:16px;"></i>
+            <div id="zipProgress">Creating zip file...</div>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="deleteModal" style="display:none;">
+    <div class="modal-box" style="max-width:440px;">
+        <div class="modal-header">
+            <h3 style="color:var(--danger);"><i class="fas fa-trash-alt"></i> Delete Confirmation</h3>
+            <button class="modal-close" onclick="closeDeleteModal()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body p-4">
+            <p class="text-sm mb-2" id="deleteModalText">Are you sure you want to delete this item?</p>
+            <div class="p-2 mb-3 rounded mono text-xs" id="deleteModalPath" style="background:var(--bg-tertiary);border:1px solid var(--border);word-break:break-all;"></div>
+            
+            <div class="form-actions d-flex justify-end gap-2 mt-3">
+                <button type="button" class="btn btn-ghost" onclick="closeDeleteModal()">Cancel</button>
+                <button type="button" class="btn btn-danger" id="btnConfirmDelete" onclick="executeDelete()"><i class="fas fa-trash"></i> Yes, Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const currentPath = <%- JSON.stringify(currentPath || "/") %>;
+const serverId = <%- JSON.stringify(server.id) %>;
+let selectedFiles = [];
+let sortColumn = 'name';
+let sortDirection = 'asc';
+let cutFilesList = [];
+let pasteMode = false;
+let uploadLimitMB = 0;
+
+fetch('/servers/' + serverId + '/files/disk-space').then(function(r){return r.json()}).then(function(d){
+    if(d.success && d.total > 0) {
+        var info = document.getElementById('diskInfo');
+        var text = document.getElementById('diskText');
+        var usedPct = Math.round((d.used / d.total) * 100);
+        if (text) text.textContent = formatSize(d.used) + ' / ' + formatSize(d.total) + ' (' + usedPct + '%)';
+        if (info) info.style.display = 'inline-flex';
+    }
+}).catch(function(){});
+
+fetch('/servers/' + serverId + '/files/upload-limit').then(function(r){return r.json()}).then(function(d){
+    uploadLimitMB = d.limit || 0;
+    var el = document.getElementById('uploadLimitInfo');
+    if (el) {
+        if (uploadLimitMB > 0) { el.textContent = 'Upload limit: ' + uploadLimitMB + 'MB per file'; el.style.display = 'inline'; }
+        else { el.textContent = 'Upload limit: Unlimited'; el.style.display = 'inline'; }
+    }
+}).catch(function(){});
+
+function showUploadModal() { document.getElementById('uploadModal').style.display = 'flex'; }
+function closeUploadModal() { document.getElementById('uploadModal').style.display = 'none'; document.getElementById('uploadFileInput').value = ''; }
+function showCreateModal() { document.getElementById('createModal').style.display = 'flex'; }
+function closeCreateModal() { document.getElementById('createModal').style.display = 'none'; document.getElementById('createForm').reset(); }
+function showCreateFolderModal() { document.getElementById('createFolderModal').style.display = 'flex'; }
+function closeCreateFolderModal() { document.getElementById('createFolderModal').style.display = 'none'; document.getElementById('createFolderForm').reset(); }
+function showRenameModal() { document.getElementById('renameModal').style.display = 'flex'; }
+function closeRenameModal() { document.getElementById('renameModal').style.display = 'none'; document.getElementById('renameForm').reset(); }
+function showZipModal() { document.getElementById('zipModal').style.display = 'flex'; }
+function closeZipModal() { document.getElementById('zipModal').style.display = 'none'; }
+
+var CHUNK_SIZE = 10 * 1024 * 1024; // 10MB per chunk
+
+let pendingDeletePath = '';
+let pendingDeleteName = '';
+
+// Use event delegation on document — completely bypasses footer's onclick patcher
+document.addEventListener('click', function(e) {
+    const btn = e.target.closest('.fm-delete-btn');
+    if (!btn) return;
+    e.stopImmediatePropagation();
+    e.preventDefault();
+    const filePath = btn.getAttribute('data-path');
+    const fileName = btn.getAttribute('data-name');
+    const isDir = btn.getAttribute('data-isdir') === 'true';
+    openDeleteModal(filePath, fileName, isDir);
+}, true); // use capture phase to run before any other handler
+
+function openDeleteModal(filePath, fileName, isDir) {
+    pendingDeletePath = filePath;
+    const type = isDir ? 'folder' : 'file';
+    const textEl = document.getElementById('deleteModalText');
+    const pathEl = document.getElementById('deleteModalPath');
+    if (textEl) textEl.textContent = 'Delete ' + type + ': "' + fileName + '"?';
+    if (pathEl) pathEl.textContent = filePath;
+    const modal = document.getElementById('deleteModal');
+    if (modal) {
+        modal.style.cssText = 'display:flex !important; position:fixed; inset:0; z-index:99999; background:rgba(0,0,0,0.7); backdrop-filter:blur(6px); align-items:center; justify-content:center; padding:24px;';
+    }
+}
+
+// Keep old deleteFile as alias just in case
+function deleteFile(path, name, isDirectory) {
+    openDeleteModal(path, name, isDirectory);
+}
+
+function closeDeleteModal() {
+    const modal = document.getElementById('deleteModal');
+    if (modal) modal.style.cssText = 'display:none !important;';
+    pendingDeletePath = '';
+}
+
+function executeDelete() {
+    if (!pendingDeletePath) return;
+    const btn = document.getElementById('btnConfirmDelete');
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deleting...'; }
+
+    fetch('/servers/<%= server.id %>/files/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: pendingDeletePath })
+    }).then(function(res) { return res.json(); }).then(function(data) {
+        closeDeleteModal();
+        if (data.success) {
+            showToast('Item deleted successfully!', 'success');
+            setTimeout(function() { location.reload(); }, 800);
+        } else {
+            showToast('Error: ' + (data.error || 'Failed to delete item'), 'error');
+        }
+    }).catch(function(err) {
+        closeDeleteModal();
+        console.error('Delete error:', err);
+        showToast('Network error while deleting', 'error');
+    }).finally(function() {
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-trash"></i> Yes, Delete'; }
+    });
+}
+function handleUploadFiles(fileList) {
+    if (!fileList || fileList.length === 0) return;
+    showUploadModal();
+    var queue = document.getElementById('uploadQueue');
+    Array.from(fileList).forEach(function(file) { startChunkedUpload(file, queue); });
+}
+
+function startChunkedUpload(file, queue) {
+    var uploadId = 'chunk-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+    var totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+    var id = 'upl-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5);
+    var item = document.createElement('div');
+    item.className = 'fm-upload-item'; item.id = id;
+    item.innerHTML = '<i class="fas fa-file" style="color:var(--accent);font-size:14px;"></i><div style="flex:1;min-width:0;"><div class="name">' + file.name + ' (' + formatSize(file.size) + ')</div><div class="progress-wrap" style="height:4px;"><div class="progress-bar accent" style="width:0%"></div></div><div class="status text-xs">Uploading...</div></div>';
+    queue.appendChild(item);
+    var statusEl = item.querySelector('.status');
+    var fillEl = item.querySelector('.progress-bar');
+
+    var uploadedChunks = 0;
+    var activeWorkers = 0;
+    var nextChunkIndex = 0;
+    var concurrency = 3; // Upload 3 chunks in parallel!
+
+    function processQueue() {
+        if (nextChunkIndex >= totalChunks && activeWorkers === 0) {
+            statusEl.textContent = 'Merging chunks...';
+            fillEl.style.width = '99%';
+            mergeChunks(file, uploadId, totalChunks, item, fillEl, statusEl, queue);
+            return;
+        }
+
+        while (activeWorkers < concurrency && nextChunkIndex < totalChunks) {
+            var chunkIdx = nextChunkIndex++;
+            activeWorkers++;
+            uploadSingleChunk(file, uploadId, chunkIdx, totalChunks, function(err) {
+                activeWorkers--;
+                if (err) {
+                    statusEl.textContent = 'Error at chunk ' + chunkIdx;
+                    statusEl.className = 'status text-xs err';
+                } else {
+                    uploadedChunks++;
+                    var pct = Math.round((uploadedChunks / totalChunks) * 100);
+                    fillEl.style.width = pct + '%';
+                    statusEl.textContent = 'Uploaded ' + uploadedChunks + '/' + totalChunks + ' chunks (' + pct + '%)';
+                    processQueue();
+                }
+            });
+        }
+    }
+
+    processQueue();
+}
+
+function uploadSingleChunk(file, uploadId, chunkIndex, totalChunks, callback) {
+    var start = chunkIndex * CHUNK_SIZE;
+    var end = Math.min(start + CHUNK_SIZE, file.size);
+    var chunk = file.slice(start, end);
+    var formData = new FormData();
+    formData.append('chunk', chunk, file.name);
+    formData.append('uploadId', uploadId);
+    formData.append('chunkIndex', chunkIndex);
+    formData.append('totalChunks', totalChunks);
+    formData.append('filename', file.name);
+    formData.append('filePath', currentPath);
+
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', '/servers/' + serverId + '/files/upload-chunk');
+    xhr.onload = function() {
+        if (xhr.status >= 200 && xhr.status < 300) {
+            callback(null);
+        } else {
+            callback(new Error('Chunk upload failed'));
+        }
+    };
+    xhr.onerror = function() { callback(new Error('Network error')); };
+    xhr.send(formData);
+}
+
+function mergeChunks(file, uploadId, totalChunks, item, fillEl, statusEl, queue) {
+    fetch('/servers/' + serverId + '/files/merge-chunks', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ uploadId: uploadId, filename: file.name, filePath: currentPath, totalChunks: totalChunks, totalSize: file.size }) })
+    .then(function(r) { return r.json(); }).then(function(data) { if (data.success) { fillEl.style.width = '100%'; statusEl.textContent = 'Complete!'; statusEl.className = 'status text-xs ok'; } else { statusEl.textContent = data.error || 'Merge failed'; statusEl.className = 'status text-xs err'; } setTimeout(function() { item.remove(); refreshFiles(); }, 2000); })
+    .catch(function() { statusEl.textContent = 'Merge failed — network error'; statusEl.className = 'status text-xs err'; setTimeout(function() { item.remove(); }, 3000); });
+}
+
+var uploadDropZone = document.getElementById('uploadDropZone');
+if (uploadDropZone) {
+    uploadDropZone.addEventListener('dragover', function(e) { e.preventDefault(); e.stopPropagation(); this.style.borderColor = 'var(--accent)'; this.style.background = 'var(--accent-dim)'; });
+    uploadDropZone.addEventListener('dragleave', function(e) { e.preventDefault(); this.style.borderColor = 'var(--border)'; this.style.background = 'none'; });
+    uploadDropZone.addEventListener('drop', function(e) { e.preventDefault(); e.stopPropagation(); this.style.borderColor = 'var(--border)'; this.style.background = 'none'; if (e.dataTransfer.files.length > 0) handleUploadFiles(e.dataTransfer.files); });
+}
+
+function toggleSelectAll() {
+    var selectAll = document.getElementById('selectAll');
+    var headerCheckbox = document.getElementById('headerCheckbox');
+    var checked = selectAll ? selectAll.checked : (headerCheckbox ? headerCheckbox.checked : false);
+    document.querySelectorAll('.file-checkbox').forEach(function(cb) {
+        cb.checked = checked;
+        var row = cb.closest('.file-row');
+        if (row) row.classList.toggle('selected', checked);
+    });
+    // Sync both checkboxes
+    if (selectAll) selectAll.checked = checked;
+    if (headerCheckbox) headerCheckbox.checked = checked;
+    updateSelection();
+}
+
+function updateSelection() {
+    var checkboxes = document.querySelectorAll('.file-checkbox:checked');
+    var totalCheckboxes = document.querySelectorAll('.file-checkbox');
+    selectedFiles = Array.from(checkboxes).map(function(cb) { return cb.value; });
+    var allSelected = totalCheckboxes.length > 0 && selectedFiles.length === totalCheckboxes.length;
+    var sa = document.getElementById('selectAll');
+    var hc = document.getElementById('headerCheckbox');
+    var sc = document.getElementById('selectionCount');
+    var ba = document.getElementById('bulkActions');
+    var cutBtn = document.getElementById('cutBtn');
+    if (sa) sa.checked = allSelected;
+    if (hc) hc.checked = allSelected;
+    if (sc) sc.textContent = selectedFiles.length > 0 ? selectedFiles.length + ' selected' : '';
+    if (ba) ba.style.display = selectedFiles.length > 0 ? 'flex' : 'none';
+    if (cutBtn) cutBtn.style.display = (selectedFiles.length > 0 && !pasteMode) ? 'inline-flex' : 'none';
+    document.querySelectorAll('.file-row').forEach(function(row) {
+        var cb = row.querySelector('.file-checkbox');
+        row.classList.toggle('selected', !!(cb && cb.checked));
+    });
+}
+
+function createFile(e) { e.preventDefault(); const filename = e.target.filename.value; fetch('/servers/<%= server.id %>/files/create', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ path: currentPath, filename }) }).then(res => res.json()).then(data => { if (data.success) { showToast('File created successfully!', 'success'); setTimeout(() => location.reload(), 1000); } else { showToast('Error: ' + (data.error || 'Failed to create file'), 'error'); } closeCreateModal(); }).catch(err => { console.error('Error:', err); showToast('An error occurred', 'error'); closeCreateModal(); }); }
+function createFolder(e) { e.preventDefault(); const foldername = e.target.foldername.value; fetch('/servers/<%= server.id %>/files/create-folder', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ path: currentPath, foldername }) }).then(res => res.json()).then(data => { if (data.success) { showToast('Folder created successfully!', 'success'); setTimeout(() => location.reload(), 1000); } else { showToast('Error: ' + (data.error || 'Failed to create folder'), 'error'); } closeCreateFolderModal(); }).catch(err => { console.error('Error:', err); showToast('An error occurred', 'error'); closeCreateFolderModal(); }); }
+
+function viewFile(path) {
+    const fileName = path.split('/').pop();
+    if (fileName === 'server.properties') { window.location.href = `/servers/<%= server.id %>/properties`; return; }
+    if (fileName === 'velocity.toml') { window.location.href = `/servers/<%= server.id %>/velocity`; return; }
+    window.open(`/servers/<%= server.id %>/files/view?path=${encodeURIComponent(path)}`, '_blank');
+}
+function downloadFile(path) { window.location.href = `/servers/<%= server.id %>/files/download?path=${encodeURIComponent(path)}`; }
+function renameItem(path, currentName, isDirectory) { document.getElementById('renameOldPath').value = path; document.getElementById('renameNewName').value = currentName; document.getElementById('renameType').textContent = isDirectory ? 'Folder' : 'File'; showRenameModal(); }
+
+function performRename(e) { e.preventDefault(); const oldPath = document.getElementById('renameOldPath').value; const newName = document.getElementById('renameNewName').value; fetch('/servers/<%= server.id %>/files/rename', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ oldPath, newName }) }).then(res => res.json()).then(data => { if (data.success) { showToast('Renamed successfully!', 'success'); setTimeout(() => location.reload(), 1000); } else { showToast('Error: ' + (data.error || 'Failed to rename'), 'error'); } closeRenameModal(); }).catch(err => { console.error('Error:', err); showToast('An error occurred', 'error'); closeRenameModal(); }); }
+
+function zipFolder(path, name) { showZipModal(); document.getElementById('zipProgress').textContent = `Creating zip file for "${name}"...`; fetch('/servers/<%= server.id %>/files/zip', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ path }) }).then(res => res.json()).then(data => { closeZipModal(); if (data.success) { showToast(`"${name}" has been zipped successfully!`, 'success'); setTimeout(() => location.reload(), 1000); } else { showToast('Error: ' + (data.error || 'Failed to create zip'), 'error'); } }).catch(err => { console.error('Error:', err); closeZipModal(); showToast('An error occurred while creating zip', 'error'); }); }
+
+function unzipFile(path, name) { showConfirm(`Extract "${name}"? This will extract all contents to the current folder.`).then(function(ok) { if (!ok) return; showToast(`Extracting "${name}"...`, 'info'); fetch('/servers/<%= server.id %>/files/unzip', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ path }) }).then(res => res.json()).then(data => { if (data.success) { showToast(`"${name}" has been extracted successfully!`, 'success'); setTimeout(() => location.reload(), 1000); } else { showToast('Error: ' + (data.error || 'Failed to extract'), 'error'); } }).catch(err => { console.error('Error:', err); showToast('An error occurred while extracting', 'error'); }); }); }
+
+function bulkDownload() { if (selectedFiles.length === 0) return; selectedFiles.forEach(path => setTimeout(() => downloadFile(path), 100)); showToast(`Downloading ${selectedFiles.length} files...`, 'info'); }
+function bulkZip() {
+    if (selectedFiles.length === 0) return;
+    // Use AMC modal for zip name input instead of native prompt()
+    var defaultName = 'selected-files.zip';
+    showConfirm(
+        'Create a zip from ' + selectedFiles.length + ' selected item(s).<br><br>' +
+        '<input id="_bulkZipName" type="text" class="form-control" value="' + defaultName + '" style="margin-top:8px;width:100%;" placeholder="archive.zip" autofocus>',
+        'Create Zip', 'Cancel'
+    ).then(function(ok) {
+        if (!ok) return;
+        var nameEl = document.getElementById('_bulkZipName');
+        var zipName = (nameEl ? nameEl.value.trim() : '') || defaultName;
+        if (!zipName.endsWith('.zip')) zipName += '.zip';
+        showZipModal();
+        document.getElementById('zipProgress').textContent = 'Creating zip file with ' + selectedFiles.length + ' items...';
+        fetch('/servers/' + serverId + '/files/bulk-zip', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ paths: selectedFiles, zipName: zipName })
+        }).then(function(res) { return res.json(); }).then(function(data) {
+            closeZipModal();
+            if (data.success) { showToast('Zip file "' + zipName + '" created successfully!', 'success'); setTimeout(function() { location.reload(); }, 1000); }
+            else { showToast('Error: ' + (data.error || 'Failed to create zip'), 'error'); }
+        }).catch(function() { closeZipModal(); showToast('An error occurred while creating zip', 'error'); });
+    });
+}
+
+function bulkDelete() { if (selectedFiles.length === 0) return; showConfirm(`Are you sure you want to delete ${selectedFiles.length} selected items?`).then(function(ok) { if (!ok) return; Promise.all(selectedFiles.map(path => fetch('/servers/<%= server.id %>/files/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ path }) }))).then(responses => Promise.all(responses.map(r => r.json()))).then(results => { const successful = results.filter(r => r.success).length; const failed = results.length - successful; if (failed === 0) showToast(`${successful} items deleted successfully!`, 'success'); else showToast(`${successful} items deleted, ${failed} failed`, 'warning'); setTimeout(() => location.reload(), 1000); }).catch(err => { console.error('Error:', err); showToast('An error occurred during bulk delete', 'error'); }); }); }
+
+function cutFiles() { if (selectedFiles.length === 0) return; cutFilesList = [...selectedFiles]; pasteMode = true; document.getElementById('cutIndicator').style.display = 'flex'; document.getElementById('cutCount').textContent = cutFilesList.length; document.getElementById('cutBtn').style.display = 'none'; document.getElementById('pasteBtn').style.display = 'inline-flex'; }
+function cancelCut() { cutFilesList = []; pasteMode = false; document.getElementById('cutIndicator').style.display = 'none'; document.getElementById('pasteBtn').style.display = 'none'; document.getElementById('cutBtn').style.display = selectedFiles.length > 0 ? 'inline-flex' : 'none'; }
+function pasteFiles() { if (cutFilesList.length === 0) return; showToast(`Moving ${cutFilesList.length} file(s)...`, 'info'); fetch('/servers/<%= server.id %>/files/move', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ files: cutFilesList, destination: currentPath }) }).then(res => res.json()).then(data => { if (data.success) { showToast('Files moved successfully!', 'success'); cancelCut(); setTimeout(() => location.reload(), 1000); } else { showToast('Error: ' + (data.error || 'Failed to move files'), 'error'); } }).catch(err => { console.error('Error:', err); showToast('An error occurred', 'error'); }); }
+
+function sortBy(column) {
+    if (sortColumn === column) sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+    else { sortColumn = column; sortDirection = 'asc'; }
+    document.querySelectorAll('[id^="sort-"]').forEach(function(icon) { icon.className = 'fas fa-sort'; icon.style.color = ''; });
+    var sortIcon = document.getElementById('sort-' + column);
+    if (sortIcon) { sortIcon.className = 'fas fa-sort-' + (sortDirection === 'asc' ? 'up' : 'down'); sortIcon.style.color = 'var(--accent)'; }
+    sortFiles();
+}
+
+function sortFiles() {
+    var tbody = document.getElementById('filesTableBody');
+    if (!tbody) return;
+    var rows = Array.from(tbody.querySelectorAll('tr.file-row'));
+    rows.sort(function(a, b) {
+        var aIsDir = a.getAttribute('data-type') === 'folder';
+        var bIsDir = b.getAttribute('data-type') === 'folder';
+        // Directories always first
+        if (aIsDir && !bIsDir) return -1;
+        if (!aIsDir && bIsDir) return 1;
+        var aVal = (a.getAttribute('data-' + sortColumn) || '').toLowerCase();
+        var bVal = (b.getAttribute('data-' + sortColumn) || '').toLowerCase();
+        if (sortColumn === 'size') {
+            // Parse human-readable size for numeric comparison
+            function parseSize(s) { var m = s.match(/^([\.\d]+)\s*(B|KB|MB|GB|TB)?/i); if (!m) return 0; var u = {b:1,kb:1024,mb:1048576,gb:1073741824,tb:1099511627776}; return parseFloat(m[1]) * (u[(m[2]||'b').toLowerCase()]||1); }
+            return sortDirection === 'asc' ? parseSize(aVal) - parseSize(bVal) : parseSize(bVal) - parseSize(aVal);
+        }
+        var cmp = aVal.localeCompare(bVal, undefined, { numeric: true, sensitivity: 'base' });
+        return sortDirection === 'asc' ? cmp : -cmp;
+    });
+    rows.forEach(function(row) { tbody.appendChild(row); });
+}
+
+function filterFiles() {
+    var search = (document.getElementById('fileSearch') ? document.getElementById('fileSearch').value : '').toLowerCase().trim();
+    var showHidden = document.getElementById('showHidden') ? document.getElementById('showHidden').checked : false;
+    document.querySelectorAll('tr.file-row').forEach(function(row) {
+        var name = (row.getAttribute('data-name') || '').toLowerCase();
+        var isHidden = name.startsWith('.');
+        var matchesSearch = !search || name.includes(search);
+        var matchesHidden = showHidden || !isHidden;
+        row.style.display = (matchesSearch && matchesHidden) ? '' : 'none';
+    });
+    updateSelection();
+}
+
+function refreshFiles() { location.reload(); }
+
+// ── Keyboard shortcuts ─────────────────────────────────────────────────────
+document.addEventListener('keydown', function(e) {
+    // Don’t capture shortcuts when typing in an input/textarea
+    if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable)) return;
+    if ((e.ctrlKey || e.metaKey) && e.key === 'x') { e.preventDefault(); cutFiles(); }
+    if ((e.ctrlKey || e.metaKey) && e.key === 'v') { e.preventDefault(); if (pasteMode) pasteFiles(); }
+    if (e.key === 'F5') { e.preventDefault(); refreshFiles(); }
+    if (e.key === 'Escape') {
+        // Close any open modal
+        document.querySelectorAll('.modal-overlay').forEach(function(m) { if (m.style.display !== 'none') m.style.cssText = 'display:none !important;'; });
+        if (pasteMode) cancelCut();
+    }
+});
+
+function formatSize(bytes) {
+    if (!bytes || bytes === 0) return '0 B';
+    const k = 1024; const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
+
+document.querySelectorAll('.modal-overlay').forEach(modal => {
+    modal.addEventListener('click', function(e) { if (e.target === this) this.style.display = 'none'; });
+});
+</script>
+
+<%- include('../partials/footer') %>

@@ -1,0 +1,145 @@
+<%- include('../partials/header') %>
+
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h1 class="mb-0">
+                <i class="fas fa-tag"></i> Referral Codes
+            </h1>
+            <p class="text-muted">Claim promotional codes to earn credits</p>
+        </div>
+    </div>
+
+    <!-- Claim Code Card -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Claim a Referral Code</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="input-group">
+                                <input type="text" class="form-control form-control-lg" id="referralCode" 
+                                       placeholder="Enter referral code (e.g., WELCOME2024)" 
+                                       onkeypress="if(event.key==='Enter') claimCode()">
+                                <button class="btn btn-primary" onclick="claimCode()">
+                                    <i class="fas fa-check"></i> Claim Code
+                                </button>
+                            </div>
+                            <small class="text-muted mt-2 d-block">
+                                <i class="fas fa-info-circle"></i> Enter a valid referral code to earn credits
+                            </small>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="alert alert-info mb-0">
+                                <h6 class="mb-2">How it works</h6>
+                                <ul class="mb-0" style="font-size: 0.9em;">
+                                    <li>Enter a referral code</li>
+                                    <li>Get instant credits</li>
+                                    <li>Use credits to buy servers</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Claimed Codes -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">
+                        <i class="fas fa-history"></i> Your Claimed Codes
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <% if (claims.length > 0) { %>
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Code</th>
+                                        <th>Name</th>
+                                        <th>Description</th>
+                                        <th>Credits Earned</th>
+                                        <th>Claimed On</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <% claims.forEach(claim => { %>
+                                        <tr>
+                                            <td>
+                                                <code class="badge bg-info"><%= claim.code %></code>
+                                            </td>
+                                            <td><strong><%= claim.name %></strong></td>
+                                            <td><%= claim.description || '-' %></td>
+                                            <td>
+                                                <span class="badge bg-success">
+                                                    💰 <%= claim.credits %>
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <small class="text-muted">
+                                                    <%= new Date(claim.claimed_at).toLocaleDateString() %>
+                                                    <%= new Date(claim.claimed_at).toLocaleTimeString() %>
+                                                </small>
+                                            </td>
+                                        </tr>
+                                    <% }); %>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div class="alert alert-success mt-3">
+                            <h6 class="mb-2">Total Credits Earned</h6>
+                            <h3 class="mb-0">
+                                💰 <span id="totalCredits"><%= claims.reduce((sum, c) => sum + c.credits, 0) %></span>
+                            </h3>
+                        </div>
+                    <% } else { %>
+                        <div class="alert alert-info text-center">
+                            <i class="fas fa-info-circle"></i> You haven't claimed any codes yet.
+                            <br>
+                            <small>Enter a code above to get started!</small>
+                        </div>
+                    <% } %>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function claimCode() {
+    const code = document.getElementById('referralCode').value.trim().toUpperCase();
+    
+    if (!code) {
+        alert('Please enter a referral code');
+        return;
+    }
+    
+    fetch('/api/referral/claim', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: code })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            alert('Success! ' + data.message);
+            document.getElementById('referralCode').value = '';
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(err => alert('Error: ' + err.message));
+}
+</script>
+
+<%- include('../partials/footer') %>

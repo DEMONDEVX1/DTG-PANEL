@@ -1,0 +1,418 @@
+<%- include('../partials/header') %>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">
+            <i class="fas fa-user-cog"></i>
+            Profile Settings
+        </h1>
+        <p class="page-subtitle">Manage your account settings, preferences, and security</p>
+    </div>
+    <div class="page-actions">
+        <button class="btn btn-ghost" onclick="exportProfile()">
+            <i class="fas fa-download"></i>
+            Export Data
+        </button>
+    </div>
+</div>
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon accent">
+            <i class="fas fa-server"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-value"><%= stats.servers %></div>
+            <div class="stat-label">Servers</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon warning">
+            <i class="fas fa-bell"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-value"><%= stats.unreadNotifications %></div>
+            <div class="stat-label">Unread Notifications</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon success">
+            <i class="fas fa-chart-line"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-value"><%= stats.recentActivity %></div>
+            <div class="stat-label">Recent Activity</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon info">
+            <i class="fas fa-calendar"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-value"><%= stats.accountAge %></div>
+            <div class="stat-label">Days Active</div>
+        </div>
+    </div>
+</div>
+
+<div class="tabs">
+    <div class="tab-item active" data-tab="general">
+        <i class="fas fa-user"></i>
+        General
+    </div>
+    <div class="tab-item" data-tab="security">
+        <i class="fas fa-shield-alt"></i>
+        Security
+    </div>
+    <div class="tab-item" data-tab="notifications">
+        <i class="fas fa-bell"></i>
+        Notifications
+    </div>
+    <div class="tab-item" data-tab="preferences">
+        <i class="fas fa-cog"></i>
+        Preferences
+    </div>
+    <div class="tab-item" data-tab="activity">
+        <i class="fas fa-history"></i>
+        Activity
+    </div>
+</div>
+
+<div id="general" class="tab-content" style="display:block">
+    <div class="d-flex gap-4" style="align-items:flex-start">
+        <div style="flex:1;min-width:0">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-user"></i> Profile Information</h3>
+                </div>
+                <div class="card-body">
+                    <form id="profileForm">
+                        <div class="d-flex gap-3">
+                            <div class="form-group flex-1">
+                                <label class="form-label" for="username">Username</label>
+                                <input type="text" id="username" class="form-control" value="<%= user.username %>" disabled>
+                            </div>
+                            <div class="form-group flex-1">
+                                <label class="form-label" for="display_name">Display Name</label>
+                                <input type="text" id="display_name" name="display_name" class="form-control"
+                                       value="<%= user.display_name || user.username %>"
+                                       placeholder="Enter your display name">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="email">Email Address</label>
+                            <input type="email" id="email" name="email" class="form-control"
+                                   value="<%= user.email %>" required>
+                            <div class="form-hint">Used for notifications and account recovery</div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="bio">Bio</label>
+                            <textarea id="bio" name="bio" class="form-control" rows="3"
+                                      placeholder="Tell us about yourself..."><%= user.bio || '' %></textarea>
+                            <div class="form-hint">Brief description about yourself (optional)</div>
+                        </div>
+
+                        <div class="d-flex gap-3">
+                            <div class="form-group flex-1">
+                                <label class="form-label" for="location">Location</label>
+                                <input type="text" id="location" name="location" class="form-control"
+                                       value="<%= user.location || '' %>" placeholder="City, Country">
+                            </div>
+                            <div class="form-group flex-1">
+                                <label class="form-label" for="website">Website</label>
+                                <input type="url" id="website" name="website" class="form-control"
+                                       value="<%= user.website || '' %>" placeholder="https://example.com">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="role">Role</label>
+                            <input type="text" id="role" class="form-control" value="<%= user.role %>" disabled>
+                            <div class="form-hint">Your account role and permissions</div>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i>
+                                Save Changes
+                            </button>
+                            <button type="button" class="btn btn-ghost" onclick="resetGeneralForm()">
+                                <i class="fas fa-undo"></i>
+                                Reset
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex-shrink-0" style="width:360px">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-camera"></i> Profile Picture</h3>
+                </div>
+                <div class="card-body text-center">
+                    <div class="d-flex flex-column align-center gap-3">
+                        <div style="width:120px;height:120px;border-radius:50%;border:4px solid var(--border);overflow:hidden;display:flex;align-items:center;justify-content:center;position:relative">
+                            <% if (user.profile_picture) { %>
+                                <img src="<%= user.profile_picture %>" alt="Profile Picture" id="profilePicture" style="width:100%;height:100%;object-fit:cover">
+                            <% } else { %>
+                                <div id="profilePicture" style="width:100%;height:100%;background:var(--bg-tertiary);display:flex;align-items:center;justify-content:center;font-size:48px;color:var(--text-tertiary)">
+                                    <i class="fas fa-user"></i>
+                                </div>
+                            <% } %>
+                            <div style="position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;gap:8px;opacity:0;transition:opacity 0.2s;border-radius:50%" class="profile-overlay">
+                                <button class="btn btn-sm btn-primary btn-icon" onclick="uploadProfilePicture()"><i class="fas fa-camera"></i></button>
+                                <% if (user.profile_picture) { %>
+                                    <button class="btn btn-sm btn-danger btn-icon" onclick="deleteProfilePicture()"><i class="fas fa-trash"></i></button>
+                                <% } %>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-hint text-center">Recommended: 200x200px, max 2MB</div>
+                    <input type="file" id="profilePictureInput" accept="image/*" style="display:none">
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-info-circle"></i> Account Information</h3>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        <div class="list-group-item d-flex justify-between align-center">
+                            <span class="text-sm text-muted">Member Since</span>
+                            <span class="text-sm fw-600"><%= user.created_at ? new Date(user.created_at).toLocaleDateString() : 'Unknown' %></span>
+                        </div>
+                        <div class="list-group-item d-flex justify-between align-center">
+                            <span class="text-sm text-muted">Last Updated</span>
+                            <span class="text-sm fw-600"><%= user.updated_at ? new Date(user.updated_at).toLocaleDateString() : 'Never' %></span>
+                        </div>
+                        <div class="list-group-item d-flex justify-between align-center">
+                            <span class="text-sm text-muted">Account Status</span>
+                            <span class="badge badge-<%= (user.status === 'active') ? 'success' : 'danger' %>"><%= user.status || 'active' %></span>
+                        </div>
+                        <div class="list-group-item d-flex justify-between align-center">
+                            <span class="text-sm text-muted">Last Login</span>
+                            <span class="text-sm fw-600"><%= user.last_login ? new Date(user.last_login).toLocaleDateString() : 'Unknown' %></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="security" class="tab-content" style="display:none">
+    <div class="d-flex gap-4" style="align-items:flex-start">
+        <div style="flex:1;min-width:0">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-lock"></i> Change Password</h3>
+                </div>
+                <div class="card-body">
+                    <form id="passwordForm">
+                        <div class="form-group">
+                            <label class="form-label" for="current_password">Current Password</label>
+                            <input type="password" id="current_password" name="current_password" class="form-control" required>
+                            <div class="form-hint">Required to change password</div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="new_password">New Password</label>
+                            <input type="password" id="new_password" name="new_password" class="form-control" required>
+                            <div id="passwordStrength" class="password-strength" style="height:4px;background:var(--bg-tertiary);border-radius:2px;margin-top:8px;overflow:hidden"><div class="password-strength-bar" style="height:100%;border-radius:2px;width:0"></div></div>
+                            <div class="form-hint">Minimum 6 characters, include numbers and special characters</div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="confirm_password">Confirm New Password</label>
+                            <input type="password" id="confirm_password" class="form-control" required>
+                            <div class="form-hint">Must match new password</div>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-key"></i>
+                                Change Password
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-shield-alt"></i> Two-Factor Authentication</h3>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-between align-center" style="padding:16px;border:1px solid var(--border);border-radius:var(--r-md)">
+                        <div>
+                            <div class="fw-600" style="margin-bottom:4px">Two-Factor Authentication</div>
+                            <div class="text-sm text-muted">Add an extra layer of security to your account by requiring a verification code from your phone.</div>
+                        </div>
+                        <div class="d-flex align-center gap-2 flex-shrink-0">
+                            <% if (user.two_factor_enabled) { %>
+                                <span class="badge badge-success">Enabled</span>
+                                <button class="btn btn-sm btn-ghost" onclick="disableTwoFactor()">
+                                    <i class="fas fa-times"></i>
+                                    Disable
+                                </button>
+                            <% } else { %>
+                                <span class="badge badge-warning">Disabled</span>
+                                <button class="btn btn-sm btn-primary" onclick="enableTwoFactor()">
+                                    <i class="fas fa-mobile-alt"></i>
+                                    Enable
+                                </button>
+                            <% } %>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex-shrink-0" style="width:360px">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-history"></i> Security Log</h3>
+                </div>
+                <div class="card-body">
+                    <div id="securityLog">
+                        <div class="text-sm text-muted text-center" style="padding:20px">Loading security events...</div>
+                    </div>
+                    <button class="btn btn-ghost btn-sm w-100 mt-2" onclick="loadSecurityLog()">
+                        <i class="fas fa-sync-alt"></i>
+                        Refresh
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="notifications" class="tab-content" style="display:none">
+    <div class="card">
+        <div class="card-header">
+            <h3><i class="fas fa-bell"></i> Notification Preferences</h3>
+        </div>
+        <div class="card-body">
+            <form id="notificationForm">
+                <div class="d-flex gap-4">
+                    <div class="flex-1">
+                        <div class="fw-600 mb-2">General Settings</div>
+
+                        <div class="form-group">
+                            <div class="form-check">
+                                <input type="checkbox" id="email_notifications" name="email_notifications"
+                                       class="form-check-input" <%= user.email_notifications ? 'checked' : '' %>>
+                                <label for="email_notifications" class="form-check-label">
+                                    <i class="fas fa-envelope"></i>
+                                    Email Notifications
+                                </label>
+                            </div>
+                            <div class="form-hint">Receive notifications via email</div>
+                        </div>
+
+                        <div class="form-group">
+                            <div class="form-check">
+                                <input type="checkbox" id="push_notifications" name="push_notifications"
+                                       class="form-check-input" <%= user.push_notifications ? 'checked' : '' %>>
+                                <label for="push_notifications" class="form-check-label">
+                                    <i class="fas fa-mobile-alt"></i>
+                                    Push Notifications
+                                </label>
+                            </div>
+                            <div class="form-hint">Receive browser push notifications</div>
+                        </div>
+
+                        <div class="form-group">
+                            <div class="form-check">
+                                <input type="checkbox" id="security_notifications" name="security_notifications"
+                                       class="form-check-input" <%= user.security_notifications ? 'checked' : '' %>>
+                                <label for="security_notifications" class="form-check-label">
+                                    <i class="fas fa-shield-alt"></i>
+                                    Security Notifications
+                                </label>
+                            </div>
+                            <div class="form-hint">Important security alerts (always recommended)</div>
+                        </div>
+                    </div>
+
+                    <div class="flex-1">
+                        <div class="fw-600 mb-2">Advanced Settings</div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="notification_frequency">Notification Frequency</label>
+                            <select id="notification_frequency" name="notification_frequency" class="form-control">
+                                <option value="immediate" <%= user.notification_frequency === 'immediate' ? 'selected' : '' %>>Immediate</option>
+                                <option value="hourly" <%= user.notification_frequency === 'hourly' ? 'selected' : '' %>>Hourly Digest</option>
+                                <option value="daily" <%= user.notification_frequency === 'daily' ? 'selected' : '' %>>Daily Digest</option>
+                                <option value="weekly" <%= user.notification_frequency === 'weekly' ? 'selected' : '' %>>Weekly Digest</option>
+                            </select>
+                        </div>
+
+                        <div class="d-flex gap-3">
+                            <div class="form-group flex-1">
+                                <label class="form-label" for="quiet_hours_start">Quiet Hours Start</label>
+                                <input type="time" id="quiet_hours_start" name="quiet_hours_start"
+                                       class="form-control" value="<%= user.quiet_hours_start || '' %>">
+                            </div>
+                            <div class="form-group flex-1">
+                                <label class="form-label" for="quiet_hours_end">Quiet Hours End</label>
+                                <input type="time" id="quiet_hours_end" name="quiet_hours_end"
+                                       class="form-control" value="<%= user.quiet_hours_end || '' %>">
+                            </div>
+                        </div>
+                        <div class="form-hint">No notifications during quiet hours</div>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i>
+                        Save Notification Settings
+                    </button>
+                    <button type="button" class="btn btn-ghost" onclick="testNotification()">
+                        <i class="fas fa-bell"></i>
+                        Send Test Notification
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div id="preferences" class="tab-content" style="display:none">
+    <div class="card">
+        <div class="card-header">
+            <h3><i class="fas fa-cog"></i> System Preferences</h3>
+        </div>
+        <div class="card-body">
+            <p class="text-sm text-muted">Additional preferences and settings will be available here in future updates.</p>
+        </div>
+    </div>
+</div>
+
+<div id="activity" class="tab-content" style="display:none">
+    <div class="card">
+        <div class="card-header">
+            <h3><i class="fas fa-history"></i> Account Activity</h3>
+            <button class="btn btn-sm btn-ghost" onclick="loadActivity()">
+                <i class="fas fa-sync-alt"></i>
+                Refresh
+            </button>
+        </div>
+        <div class="card-body">
+            <div id="activityLog">
+                <div class="text-sm text-muted text-center" style="padding:20px">Loading activity log...</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<%- include('./profile-styles') %>
+<%- include('./profile-scripts') %>
+
+<%- include('../partials/footer') %>
