@@ -49,8 +49,8 @@ git clone https://github.com/DemonDevxx/DTG-PANEL
 # Unzip & cd directory
 ```
 cd DTG-PANEL
-unzip amcpanel.zip
-cd amcpanel
+unzip dtgpanel.zip
+cd dtgpanel
 ```
 # Add  Domain
 ```
