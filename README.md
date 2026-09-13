@@ -75,6 +75,7 @@ Url - localhost:3000
 ```
 npm install && npm update && npm upgrade
 npm start
+ADMIN USERNAME & PASSWORD IS admin
 ```
 
 ## Production security
