@@ -1,5 +1,5 @@
 # DTG-PANEL v2.0
-🎮 DTG Panel is a modern Minecraft Server Management Panel built for speed, reliability, and simplicity. 🚀 Designed for server owners and hosting providers, it delivers a clean, responsive, and secure experience with high performance and an intuitive interface. ❤️ Made by AyushTheWarrior & DemonDevx/Rehan ✨
+🎮 DTG Panel is a modern Minecraft Server Management Panel built for speed, reliability, and simplicity. 🚀 Designed for server owners and hosting providers, it delivers a clean, responsive, and secure experience with high performance and an intuitive interface. ❤️ Made by AyushTheWarrior & DemonDevx/Rehan & evilsaad1 ✨
 
 ## ✨ Version 2.0 Features (NEW!)
 
@@ -84,6 +84,6 @@ Set `NODE_ENV=production`, a random `SESSION_SECRET`, and `TRUST_PROXY=true` onl
 
 ## 🙌 Credits
 
-This project is proudly developed and maintained by **[DemonDevx/Rehan & AyushTheWarrior](Soon)**.  
+This project is proudly developed and maintained by **[DemonDevx/Rehan & evilsaad1 & AyushTheWarrior](Soon)**.  
 
-⚠️ **Note:** If you make any modifications, forks, or redistributions of this repository, please provide proper credit to **AyushTheWarrior & DemonDevx/Rehan** by including the link above in your project. Respecting credits helps keep the community fair and supports further development.  
+⚠️ **Note:** If you make any modifications, forks, or redistributions of this repository, please provide proper credit to **AyushTheWarrior & DemonDevx/Rehan & evilsaad1** by including the link above in your project. Respecting credits helps keep the community fair and supports further development.  
