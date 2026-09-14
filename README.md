@@ -73,7 +73,7 @@ Url - localhost:3000
 ```
 # How to Start Panel
 ```
-npm install && npm update && npm upgrade
+npm install
 npm start
 ADMIN USERNAME & PASSWORD IS admin
 ```
