@@ -84,6 +84,6 @@ Set `NODE_ENV=production`, a random `SESSION_SECRET`, and `TRUST_PROXY=true` onl
 
 ## 🙌 Credits
 
-This project is proudly developed and maintained by **[DemonDevx/Rehan & evilsaad1 & AyushTheWarrior](Soon)**.  
+This project is proudly developed and maintained by **[DemonDevx/Rehan & evilsaad1 & AyushTheWarrior](https://youtu.be/Ef9qaDycmUM?si=d_6bFt1e8hUBtlVG)**.  
 
 ⚠️ **Note:** If you make any modifications, forks, or redistributions of this repository, please provide proper credit to **AyushTheWarrior & DemonDevx/Rehan & evilsaad1** by including the link above in your project. Respecting credits helps keep the community fair and supports further development.  
